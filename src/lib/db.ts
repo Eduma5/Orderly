@@ -229,12 +229,33 @@ export async function createOrder(
 
 export async function getUnpaidOrdersByTable(tableNumber: number) {
   if (IS_DEMO || !supabase) return mock.getUnpaidOrdersByTable(tableNumber);
-  throw new Error('Supabase not configured');
+  const sessionId = getSessionId();
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, order_items(*)')
+    .eq('table_number', tableNumber)
+    .eq('session_id', sessionId)
+    .neq('status', 'paid')
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return ((data || []) as any[]).map((order) => ({ ...order, items: order.order_items }));
 }
 
 export async function payOrders(orderIds: string[], paymentMethod: string, tableNumber: number): Promise<void> {
   if (IS_DEMO || !supabase) return mock.payOrders(orderIds, paymentMethod, tableNumber);
-  throw new Error('Supabase not configured');
+  const nowIso = new Date().toISOString();
+  const { error } = await supabase
+    .from('orders')
+    .update({
+      status: 'paid',
+      payment_method: paymentMethod,
+      paid_at: nowIso,
+      updated_at: nowIso,
+    })
+    .in('id', orderIds);
+
+  if (error) throw error;
 }
 
 export async function payPartial(tableNumber: number, amount: number, paymentMethod: string, payerName: string): Promise<void> {
@@ -343,7 +364,15 @@ export function subscribeToOrders(callback: (payload: any) => void) {
 // =========================
 export async function getMyOrders() {
   if (IS_DEMO || !supabase) return mock.getMyOrders();
-  throw new Error('Supabase not configured');
+  const sessionId = getSessionId();
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, order_items(*)')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return ((data || []) as any[]).map((order) => ({ ...order, items: order.order_items }));
 }
 
 // =========================
