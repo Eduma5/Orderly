@@ -273,12 +273,31 @@ export async function getMyTickets() {
 // =========================
 export async function getAdminSettings() {
   if (IS_DEMO || !supabase) return mock.getAdminSettings();
-  throw new Error('Supabase not configured');
+
+  const { data, error } = await supabase
+    .from('admin_settings')
+    .select('key, value');
+
+  if (error) {
+    console.error(error);
+    return {};
+  }
+
+  const rows = (data || []) as Array<{ key: string; value: string }>;
+  return rows.reduce((acc: Record<string, string>, row) => {
+    acc[row.key] = row.value;
+    return acc;
+  }, {});
 }
 
 export async function updateAdminSetting(key: string, value: string) {
   if (IS_DEMO || !supabase) return mock.updateAdminSetting(key, value);
-  throw new Error('Supabase not configured');
+
+  const { error } = await supabase
+    .from('admin_settings')
+    .upsert({ key, value }, { onConflict: 'key' });
+
+  if (error) throw error;
 }
 
 // =========================
