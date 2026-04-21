@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '';
 
-export const IS_DEMO = !supabaseUrl;
+// FORZADO A DEMO TEMPORALMENTE HASTA PROGRAMAR LA DB REAL
+export const IS_DEMO = true; 
 
 // Solo crear el cliente cuando hay credenciales reales
 export const supabase = IS_DEMO
