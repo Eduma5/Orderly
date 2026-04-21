@@ -45,9 +45,27 @@ PUBLIC_APP_URL=https://tu-app.vercel.app
 
 ---
 
-## 3. Desplegar en Vercel
+## 3. Desplegar en Render (Web Service)
 
-### 3.1 Subir a GitHub
+Para desplegar tu proyecto SSR en Render:
+
+1. Crea un **Nuevo Web Service** y conecta tu repositorio de GitHub.
+2. Configuración en Render:
+   - **Environment:** Node
+   - **Build Command:** `npm install && npm run build`
+   - **Start Command:** `npm start`
+3. Variables de entorno importantes (Añadir en **Advanced → Secret Files** o **Environment Variables**):
+   - `HOST`: `0.0.0.0`
+   - `PORT`: (Déjalo en blanco, Render lo inyecta automáticamente o pon `10000`)
+   - `PUBLIC_SUPABASE_URL`: (tu URL de Supabase)
+   - `PUBLIC_SUPABASE_ANON_KEY`: (tu llave anónima de Supabase)
+   - *Y el resto de tus variables descritas arriba.*
+
+---
+
+## 4. Desplegar en Vercel
+
+### 4.1 Subir a GitHub
 ```bash
 git init
 git add .
