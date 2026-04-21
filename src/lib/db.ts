@@ -172,17 +172,44 @@ export async function createOrder(
   paymentMethod?: string
 ): Promise<Order> {
   if (IS_DEMO || !supabase) return mock.createOrder(tableNumber, items, paymentMethod);
+  const user = await getCurrentUser();
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const totalCost = items.reduce((sum, item) => sum + (item.product.cost || 0) * item.quantity, 0);
-  
-  const { data: order, error } = await supabase.from('orders').insert({
+
+  const insertPayload = {
     table_number: tableNumber,
     session_id: getSessionId(),
+    user_id: user?.id || null,
+    user_name: user?.name || null,
     status: 'pending',
     total,
     total_cost: totalCost,
     payment_method: paymentMethod || null,
-  }).select('*').single();
+  };
+
+  let order: any = null;
+  let error: any = null;
+
+  ({ data: order, error } = await supabase
+    .from('orders')
+    .insert(insertPayload as any)
+    .select('*')
+    .single());
+
+  if (error && (String(error?.message || '').includes('user_name') || String(error?.message || '').includes('user_id'))) {
+    ({ data: order, error } = await supabase
+      .from('orders')
+      .insert({
+        table_number: tableNumber,
+        session_id: getSessionId(),
+        status: 'pending',
+        total,
+        total_cost: totalCost,
+        payment_method: paymentMethod || null,
+      })
+      .select('*')
+      .single());
+  }
   
   if (error) throw error;
   
@@ -307,6 +334,7 @@ export function subscribeToOrders(callback: (payload: any) => void) {
   if (IS_DEMO || !supabase) return mock.subscribeToOrders(callback);
   return supabase.channel('orders_channel')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, callback)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'service_requests' }, callback)
     .subscribe();
 }
 
@@ -361,12 +389,45 @@ export async function createServiceRequest(
   }
 ): Promise<ServiceRequest> {
   if (IS_DEMO || !supabase) return mock.createServiceRequest(type, tableNumber, options);
-  throw new Error('Supabase not configured');
+  const user = await getCurrentUser();
+  const nowIso = new Date().toISOString();
+
+  const payload = {
+    type,
+    method: options?.method || null,
+    table_number: tableNumber,
+    user_id: user?.id || null,
+    user_name: user?.name || null,
+    status: 'pending',
+    total: options?.total ?? null,
+    order_ids: options?.orderIds ?? null,
+    message: options?.message ?? null,
+    created_at: nowIso,
+    updated_at: nowIso,
+  };
+
+  const { data, error } = await supabase
+    .from('service_requests')
+    .insert(payload as any)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as ServiceRequest;
 }
 
 export async function getServiceRequests(status?: string): Promise<ServiceRequest[]> {
   if (IS_DEMO || !supabase) return mock.getServiceRequests(status);
-  throw new Error('Supabase not configured');
+  let query = supabase
+    .from('service_requests')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (status) query = query.eq('status', status);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []) as ServiceRequest[];
 }
 
 export async function updateServiceRequestStatus(
@@ -374,7 +435,13 @@ export async function updateServiceRequestStatus(
   status: ServiceRequest['status']
 ): Promise<void> {
   if (IS_DEMO || !supabase) return mock.updateServiceRequestStatus(requestId, status);
-  throw new Error('Supabase not configured');
+
+  const { error } = await supabase
+    .from('service_requests')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', requestId);
+
+  if (error) throw error;
 }
 
 // =========================

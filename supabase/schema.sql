@@ -53,6 +53,8 @@ create table if not exists orders (
   id uuid primary key default uuid_generate_v4(),
   table_number int not null,
   session_id text not null, -- UUID del navegador del cliente
+  user_id uuid,
+  user_name text,
   status text not null default 'pending' check (status in ('pending','preparing','served','paid')),
   total numeric(10,2) not null default 0,
   total_cost numeric(10,2) not null default 0,
@@ -62,6 +64,27 @@ create table if not exists orders (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   paid_at timestamptz
+);
+
+alter table orders add column if not exists user_id uuid;
+alter table orders add column if not exists user_name text;
+
+-- ============================================
+-- SOLICITUDES DE SERVICIO
+-- ============================================
+create table if not exists service_requests (
+  id uuid primary key default uuid_generate_v4(),
+  type text not null check (type in ('solicitud_pago','solicitud_camarero')),
+  method text check (method in ('datafono','efectivo','otro')),
+  table_number int not null,
+  user_id uuid,
+  user_name text,
+  status text not null default 'pending' check (status in ('pending','attending','completed')),
+  total numeric(10,2),
+  order_ids uuid[],
+  message text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 -- ============================================
@@ -113,6 +136,8 @@ create index if not exists idx_orders_session on orders(session_id);
 create index if not exists idx_order_items_order on order_items(order_id);
 create index if not exists idx_tickets_session on tickets(session_id);
 create index if not exists idx_tickets_order on tickets(order_id);
+create index if not exists idx_service_requests_status on service_requests(status);
+create index if not exists idx_service_requests_table on service_requests(table_number);
 
 -- ============================================
 -- FUNCIÓN: actualizar updated_at automáticamente
@@ -127,6 +152,10 @@ $$ language plpgsql;
 
 create trigger orders_updated_at
   before update on orders
+  for each row execute function update_updated_at();
+
+create trigger service_requests_updated_at
+  before update on service_requests
   for each row execute function update_updated_at();
 
 -- ============================================
@@ -180,11 +209,18 @@ create policy "settings_admin" on admin_settings for all using (
   auth.role() = 'authenticated'
 );
 
+-- Solicitudes de servicio: lectura e inserción pública; actualización para gestión
+alter table service_requests enable row level security;
+create policy "service_requests_insert" on service_requests for insert with check (true);
+create policy "service_requests_select" on service_requests for select using (true);
+create policy "service_requests_update" on service_requests for update using (true);
+
 -- ============================================
 -- Suscripción en tiempo real para pedidos
 -- ============================================
 alter publication supabase_realtime add table orders;
 alter publication supabase_realtime add table order_items;
+alter publication supabase_realtime add table service_requests;
 
 -- ============================================
 -- DATOS INICIALES
