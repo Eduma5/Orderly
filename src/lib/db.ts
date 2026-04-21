@@ -9,34 +9,34 @@ import type { Category, Product, Order, UserPublic, ServiceRequest, GroupSession
 // USUARIOS
 // =========================
 export async function registerUser(name: string, email: string, password: string): Promise<UserPublic> {
-  if (IS_DEMO) return mock.registerUser(name, email, password);
+  if (IS_DEMO || !supabase) return mock.registerUser(name, email, password);
   throw new Error('Supabase auth not configured');
 }
 
 export async function loginUser(email: string, password: string): Promise<UserPublic> {
-  if (IS_DEMO) return mock.loginUser(email, password);
+  if (IS_DEMO || !supabase) return mock.loginUser(email, password);
   throw new Error('Supabase auth not configured');
 }
 
 export async function getCurrentUser(): Promise<UserPublic | null> {
-  if (IS_DEMO) return mock.getCurrentUser();
+  if (IS_DEMO || !supabase) return mock.getCurrentUser();
   return null;
 }
 
 export async function logoutUser(): Promise<void> {
-  if (IS_DEMO) return mock.logoutUser();
+  if (IS_DEMO || !supabase) return mock.logoutUser();
 }
 
 // =========================
 // RECUPERACIÓN DE CONTRASEÑA
 // =========================
 export async function requestPasswordReset(email: string): Promise<string> {
-  if (IS_DEMO) return mock.requestPasswordReset(email);
+  if (IS_DEMO || !supabase) return mock.requestPasswordReset(email);
   throw new Error('Supabase not configured');
 }
 
 export async function resetPassword(email: string, code: string, newPassword: string): Promise<void> {
-  if (IS_DEMO) return mock.resetPassword(email, code, newPassword);
+  if (IS_DEMO || !supabase) return mock.resetPassword(email, code, newPassword);
   throw new Error('Supabase not configured');
 }
 
@@ -61,24 +61,24 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
-  if (IS_DEMO) return mock.getProductsByCategory(categoryId);
+  if (IS_DEMO || !supabase) return mock.getProductsByCategory(categoryId);
   throw new Error('Supabase not configured');
 }
 
 export async function upsertProduct(
   product: Partial<Product> & { category_id: string; name: string; price: number }
 ): Promise<Product> {
-  if (IS_DEMO) return mock.upsertProduct(product);
+  if (IS_DEMO || !supabase) return mock.upsertProduct(product);
   throw new Error('Supabase not configured');
 }
 
 export async function deleteProduct(productId: string): Promise<void> {
-  if (IS_DEMO) return mock.deleteProduct(productId);
+  if (IS_DEMO || !supabase) return mock.deleteProduct(productId);
   throw new Error('Supabase not configured');
 }
 
 export async function toggleProductAvailability(productId: string, available: boolean): Promise<void> {
-  if (IS_DEMO) return mock.toggleProductAvailability(productId, available);
+  if (IS_DEMO || !supabase) return mock.toggleProductAvailability(productId, available);
   throw new Error('Supabase not configured');
 }
 
@@ -93,12 +93,12 @@ export async function getTables() {
 }
 
 export async function upsertTable(table: { id?: string; number: number; name?: string; active?: boolean }) {
-  if (IS_DEMO) return mock.upsertTable(table);
+  if (IS_DEMO || !supabase) return mock.upsertTable(table);
   throw new Error('Supabase not configured');
 }
 
 export async function deleteTable(tableId: string) {
-  if (IS_DEMO) return mock.deleteTable(tableId);
+  if (IS_DEMO || !supabase) return mock.deleteTable(tableId);
   throw new Error('Supabase not configured');
 }
 
@@ -140,22 +140,22 @@ export async function createOrder(
 }
 
 export async function getUnpaidOrdersByTable(tableNumber: number) {
-  if (IS_DEMO) return mock.getUnpaidOrdersByTable(tableNumber);
+  if (IS_DEMO || !supabase) return mock.getUnpaidOrdersByTable(tableNumber);
   throw new Error('Supabase not configured');
 }
 
 export async function payOrders(orderIds: string[], paymentMethod: string, tableNumber: number): Promise<void> {
-  if (IS_DEMO) return mock.payOrders(orderIds, paymentMethod, tableNumber);
+  if (IS_DEMO || !supabase) return mock.payOrders(orderIds, paymentMethod, tableNumber);
   throw new Error('Supabase not configured');
 }
 
 export async function payPartial(tableNumber: number, amount: number, paymentMethod: string, payerName: string): Promise<void> {
-  if (IS_DEMO) return mock.payPartial(tableNumber, amount, paymentMethod, payerName);
+  if (IS_DEMO || !supabase) return mock.payPartial(tableNumber, amount, paymentMethod, payerName);
   throw new Error('Supabase not configured');
 }
 
 export async function getPartialPayments(tableNumber: number) {
-  if (IS_DEMO) return mock.getPartialPayments(tableNumber);
+  if (IS_DEMO || !supabase) return mock.getPartialPayments(tableNumber);
   throw new Error('Supabase not configured');
 }
 
@@ -170,7 +170,7 @@ export async function getOrders(status?: string): Promise<Order[]> {
 }
 
 export async function getPaidOrders(since?: string) {
-  if (IS_DEMO) return mock.getPaidOrders(since);
+  if (IS_DEMO || !supabase) return mock.getPaidOrders(since);
   throw new Error('Supabase not configured');
 }
 
@@ -184,7 +184,7 @@ export async function updateOrderStatus(orderId: string, status: string, payment
 }
 
 export async function setOrderStripePaymentId(orderId: string, stripePaymentId: string): Promise<void> {
-  if (IS_DEMO) return mock.setOrderStripePaymentId(orderId, stripePaymentId);
+  if (IS_DEMO || !supabase) return mock.setOrderStripePaymentId(orderId, stripePaymentId);
   throw new Error('Supabase not configured');
 }
 
@@ -198,12 +198,12 @@ export async function createTicket(
   total: number,
   paymentMethod: string
 ) {
-  if (IS_DEMO) return mock.createTicket(orderId, tableNumber, items, total, paymentMethod);
+  if (IS_DEMO || !supabase) return mock.createTicket(orderId, tableNumber, items, total, paymentMethod);
   throw new Error('Supabase not configured');
 }
 
 export async function getMyTickets() {
-  if (IS_DEMO) return mock.getMyTickets();
+  if (IS_DEMO || !supabase) return mock.getMyTickets();
   throw new Error('Supabase not configured');
 }
 
@@ -211,12 +211,12 @@ export async function getMyTickets() {
 // ADMIN SETTINGS
 // =========================
 export async function getAdminSettings() {
-  if (IS_DEMO) return mock.getAdminSettings();
+  if (IS_DEMO || !supabase) return mock.getAdminSettings();
   throw new Error('Supabase not configured');
 }
 
 export async function updateAdminSetting(key: string, value: string) {
-  if (IS_DEMO) return mock.updateAdminSetting(key, value);
+  if (IS_DEMO || !supabase) return mock.updateAdminSetting(key, value);
   throw new Error('Supabase not configured');
 }
 
@@ -234,9 +234,9 @@ export function subscribeToOrders(callback: (payload: any) => void) {
 // MIS PEDIDOS
 // =========================
 export async function getMyOrders() {
-  if (IS_DEMO) return mock.getMyOrders();
+  if (IS_DEMO || !supabase) return mock.getMyOrders();
   throw new Error('Supabase not configured');
-}
+}}
 
 // =========================
 // MONEDERO (USER-LINKED)
@@ -252,12 +252,12 @@ export async function getWalletTransactions() {
 }
 
 export async function rechargeWallet(amount: number): Promise<number> {
-  if (IS_DEMO) return mock.rechargeWallet(amount);
+  if (IS_DEMO || !supabase) return mock.rechargeWallet(amount);
   throw new Error('Supabase not configured');
 }
 
 export async function payWithWallet(amount: number, description: string): Promise<number> {
-  if (IS_DEMO) return mock.payWithWallet(amount, description);
+  if (IS_DEMO || !supabase) return mock.payWithWallet(amount, description);
   throw new Error('Supabase not configured');
 }
 
@@ -280,12 +280,12 @@ export async function createServiceRequest(
     message?: string;
   }
 ): Promise<ServiceRequest> {
-  if (IS_DEMO) return mock.createServiceRequest(type, tableNumber, options);
+  if (IS_DEMO || !supabase) return mock.createServiceRequest(type, tableNumber, options);
   throw new Error('Supabase not configured');
 }
 
 export async function getServiceRequests(status?: string): Promise<ServiceRequest[]> {
-  if (IS_DEMO) return mock.getServiceRequests(status);
+  if (IS_DEMO || !supabase) return mock.getServiceRequests(status);
   throw new Error('Supabase not configured');
 }
 
@@ -293,7 +293,7 @@ export async function updateServiceRequestStatus(
   requestId: string,
   status: ServiceRequest['status']
 ): Promise<void> {
-  if (IS_DEMO) return mock.updateServiceRequestStatus(requestId, status);
+  if (IS_DEMO || !supabase) return mock.updateServiceRequestStatus(requestId, status);
   throw new Error('Supabase not configured');
 }
 
@@ -301,41 +301,41 @@ export async function updateServiceRequestStatus(
 // PAGO DIVIDIDO POR GRUPOS
 // =========================
 export async function createGroupSession(tableNumber: number, orderIds: string[]): Promise<GroupSession> {
-  if (IS_DEMO) return mock.createGroupSession(tableNumber, orderIds);
+  if (IS_DEMO || !supabase) return mock.createGroupSession(tableNumber, orderIds);
   throw new Error('Supabase not configured');
 }
 
 export async function getGroupSession(sessionId: string): Promise<GroupSession | null> {
-  if (IS_DEMO) return mock.getGroupSession(sessionId);
+  if (IS_DEMO || !supabase) return mock.getGroupSession(sessionId);
   throw new Error('Supabase not configured');
 }
 
 export async function joinGroupSession(sessionId: string): Promise<GroupSession> {
-  if (IS_DEMO) return mock.joinGroupSession(sessionId);
+  if (IS_DEMO || !supabase) return mock.joinGroupSession(sessionId);
   throw new Error('Supabase not configured');
 }
 
 export async function claimGroupItem(sessionId: string, itemId: string): Promise<GroupSession> {
-  if (IS_DEMO) return mock.claimGroupItem(sessionId, itemId);
+  if (IS_DEMO || !supabase) return mock.claimGroupItem(sessionId, itemId);
   throw new Error('Supabase not configured');
 }
 
 export async function unclaimGroupItem(sessionId: string, itemId: string): Promise<GroupSession> {
-  if (IS_DEMO) return mock.unclaimGroupItem(sessionId, itemId);
+  if (IS_DEMO || !supabase) return mock.unclaimGroupItem(sessionId, itemId);
   throw new Error('Supabase not configured');
 }
 
 export async function payGroupShare(sessionId: string): Promise<GroupSession> {
-  if (IS_DEMO) return mock.payGroupShare(sessionId);
+  if (IS_DEMO || !supabase) return mock.payGroupShare(sessionId);
   throw new Error('Supabase not configured');
 }
 
 export async function hostPayVenue(sessionId: string): Promise<void> {
-  if (IS_DEMO) return mock.hostPayVenue(sessionId);
+  if (IS_DEMO || !supabase) return mock.hostPayVenue(sessionId);
   throw new Error('Supabase not configured');
 }
 
 export async function getActiveGroupSessions(tableNumber: number): Promise<GroupSession[]> {
-  if (IS_DEMO) return mock.getActiveGroupSessions(tableNumber);
+  if (IS_DEMO || !supabase) return mock.getActiveGroupSessions(tableNumber);
   throw new Error('Supabase not configured');
-}
+}}
