@@ -1,0 +1,14 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import GroupJoinApp from '../../components/customer/GroupJoinApp';
+
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect('/');
+}
+---
+
+<Layout title="Unirse al grupo - ORDERLY">
+  <GroupJoinApp client:load sessionId={id} />
+</Layout>

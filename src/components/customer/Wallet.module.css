@@ -1,0 +1,246 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.panel {
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.closeBtn {
+  background: var(--muted);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+/* Balance card */
+.balanceCard {
+  background: linear-gradient(135deg, var(--primary), #8b5e3c);
+  border-radius: 16px;
+  padding: 1.5rem;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 24px rgba(139, 94, 60, 0.3);
+}
+
+.balanceLabel {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  margin-bottom: 0.25rem;
+}
+
+.balanceAmount {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.balanceSuffix {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+/* Recharge section */
+.sectionTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.rechargeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.rechargeBtn {
+  background: var(--muted);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rechargeBtn:hover,
+.rechargeBtn.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.customRow {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.customInput {
+  flex: 1;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 0.625rem 1rem;
+  font-size: 0.95rem;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.customInput:focus {
+  border-color: var(--primary);
+}
+
+.confirmRechargeBtn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.confirmRechargeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Transactions */
+.transactions {
+  margin-top: 1.5rem;
+}
+
+.txList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tx {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--muted);
+  border-radius: 12px;
+}
+
+.txIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.txRecharge {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.txPayment {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.txInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.txDesc {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.txDate {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.txAmount {
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.txAmountPositive {
+  color: #059669;
+}
+
+.txAmountNegative {
+  color: #dc2626;
+}
+
+.emptyTx {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}

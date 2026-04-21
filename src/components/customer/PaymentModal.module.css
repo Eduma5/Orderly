@@ -1,0 +1,405 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal {
+  width: 100%;
+  max-width: 480px;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 1.5rem;
+  animation: slideUp 0.3s ease;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+  .overlay {
+    align-items: center;
+  }
+  .modal {
+    border-radius: var(--radius-xl);
+    max-height: 90vh;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+/* Order summary */
+.orderSummary {
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.summaryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.summaryTable {
+  background: var(--color-accent);
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.summaryItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+  padding: 0.25rem 0;
+  color: var(--color-text);
+}
+
+.summaryTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Payment method chooser */
+.methods {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.methodBtn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  transition: all 0.2s;
+  background: var(--color-surface);
+  color: var(--color-text);
+  position: relative;
+}
+
+.methodBtn:hover {
+  border-color: var(--color-accent);
+  background: #fef2f4;
+}
+
+.methodIcon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.methodBtn > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.methodName {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.methodDesc {
+  font-size: 0.8125rem;
+  color: var(--color-text-light);
+}
+
+.methodBadge {
+  position: absolute;
+  top: -0.5rem;
+  right: 0.75rem;
+  background: var(--color-accent);
+  color: white;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+/* Wallet view */
+.walletView {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.walletOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.walletBtn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  transition: all 0.2s;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.walletBtn:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.walletBtn > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.walletName {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.walletDesc {
+  font-size: 0.8125rem;
+  color: var(--color-text-light);
+}
+
+.bizumLogo {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #00b6b6;
+  background: #e6fafa;
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius-sm);
+}
+
+.walletTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  font-weight: 500;
+}
+
+.walletAmount {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+/* Processing */
+.processingView {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 1rem;
+  color: var(--color-text-light);
+}
+
+.spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid var(--color-border);
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Done */
+.doneView {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 0;
+  text-align: center;
+}
+
+.doneIcon {
+  color: #10b981;
+  animation: scaleIn 0.4s ease;
+}
+
+.doneText {
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.doneSubtext {
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+}
+
+/* Confirm view (card / cash) */
+.confirmView {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.totalDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1.5rem;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+}
+
+.totalDisplay span:first-child {
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+}
+
+.totalAmount {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.cashNote {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+  padding: 0 1rem;
+}
+
+/* Bizum view */
+.bizumInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bizumPhone {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: #eff6ff;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid #bfdbfe;
+  color: #1e40af;
+}
+
+.bizumPhone > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.bizumLabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.bizumNumber {
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #1e40af;
+}
+
+.bizumAmount {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.bizumTotal {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.bizumSteps {
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bizumSteps p {
+  font-size: 0.8125rem;
+  color: var(--color-text);
+}

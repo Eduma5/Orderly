@@ -1,0 +1,104 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.stats {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  font-weight: 500;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 1.25rem 1rem;
+  border-radius: var(--radius-lg);
+  border: 2px solid;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.free {
+  border-color: var(--color-success);
+  background: #f0fdf4;
+}
+
+.occupied {
+  border-color: var(--color-warning);
+  background: #fffbeb;
+}
+
+.disabled {
+  border-color: var(--color-border);
+  background: var(--color-bg);
+  opacity: 0.6;
+}
+
+.tableNumber {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.tableStatus {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.free .tableStatus {
+  color: var(--color-success);
+}
+
+.occupied .tableStatus {
+  color: var(--color-warning);
+}
+
+.orderCount {
+  font-size: 0.8125rem;
+  color: var(--color-text-light);
+}
+
+.tableActions {
+  display: flex;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}

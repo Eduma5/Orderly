@@ -1,0 +1,176 @@
+.wrapper {
+  position: sticky;
+  top: 3.25rem;
+  z-index: 90;
+  background: rgba(245, 240, 232, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(201, 168, 76, 0.15);
+  --fade-size: 32px;
+}
+
+.wrapper.fadeLeft {
+  mask-image: linear-gradient(to right, transparent 0%, black var(--fade-size), black 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black var(--fade-size), black 100%);
+}
+
+.wrapper.fadeRight {
+  mask-image: linear-gradient(to left, transparent 0%, black var(--fade-size), black 100%);
+  -webkit-mask-image: linear-gradient(to left, transparent 0%, black var(--fade-size), black 100%);
+}
+
+.wrapper.fadeLeft.fadeRight {
+  mask-image: linear-gradient(to right, transparent 0%, black var(--fade-size), black calc(100% - var(--fade-size)), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black var(--fade-size), black calc(100% - var(--fade-size)), transparent 100%);
+}
+
+.tabs {
+  max-width: 768px;
+  margin: 0 auto;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 0.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding-right: 2rem;
+  /* Visible thin scrollbar for horizontal navigation */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 168, 76, 0.5) transparent;
+}
+
+.tabs::after {
+  content: '';
+  flex-shrink: 0;
+  width: 1rem;
+}
+
+/* Custom scrollbar — thin & elegant */
+.tabs::-webkit-scrollbar {
+  height: 3px;
+}
+
+.tabs::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 3px;
+  margin: 0 1rem;
+}
+
+.tabs::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.5);
+  border-radius: 3px;
+}
+
+.tabs::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+.tab {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-light);
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--color-surface);
+  min-width: 4.5rem;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab:hover {
+  color: var(--color-text);
+  background: var(--color-warm-light);
+  border-color: rgba(201, 168, 76, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(201, 168, 76, 0.15);
+}
+
+.tab.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 16px rgba(10, 10, 10, 0.3);
+  position: relative;
+  transform: translateY(-2px);
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.25rem;
+  height: 2.5px;
+  background: var(--color-accent);
+  border-radius: 3px 3px 0 0;
+}
+
+.icon {
+  font-size: 1.35rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+
+.label {
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  max-width: 5.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 359px) {
+  .tabs {
+    gap: 0.375rem;
+    padding: 0.5rem 0.625rem 0.375rem;
+  }
+  .tab {
+    padding: 0.4rem 0.625rem;
+    min-width: 3.5rem;
+  }
+  .icon {
+    font-size: 1.15rem;
+  }
+  .label {
+    font-size: 0.6rem;
+    max-width: 4rem;
+  }
+}
+
+@media (min-width: 480px) {
+  .tab {
+    padding: 0.625rem 1.125rem;
+    min-width: 5rem;
+  }
+  .label {
+    font-size: 0.75rem;
+    max-width: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .tabs {
+    gap: 0.625rem;
+  }
+  .tab {
+    padding: 0.625rem 1.25rem;
+    min-width: 5.5rem;
+  }
+  .label {
+    font-size: 0.8125rem;
+  }
+}

@@ -1,0 +1,79 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="ORDERLY - Carta Digital">
+  <div class="landing">
+    <div class="content">
+      <h1 class="logo">ORDERLY</h1>
+      <p class="subtitle">Sistema de pedidos digital</p>
+      <p class="desc">
+        Escanea el código QR de tu mesa para ver el menú y hacer tu pedido.
+      </p>
+      <div class="links">
+        <a href="/mesa/1" class="btn btn-primary btn-lg">Demo Mesa 1</a>
+        <a href="/admin" class="btn btn-outline btn-lg">Panel Admin</a>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .landing {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0A0A0A 0%, #1a2a22 50%, #2D4A3E 100%);
+    padding: 2rem;
+  }
+
+  .content {
+    text-align: center;
+    max-width: 480px;
+  }
+
+  .logo {
+    font-size: 4rem;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -0.05em;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+  }
+
+  .desc {
+    font-size: 0.9375rem;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+  }
+
+  .links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .links a {
+    min-width: 200px;
+  }
+
+  .btn-outline {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+  }
+
+  .btn-outline:hover {
+    border-color: white;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+</style>

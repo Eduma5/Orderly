@@ -1,0 +1,463 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 800;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.panel {
+  background: var(--surface);
+  border-radius: 1.2rem 1.2rem 0 0;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.5rem 1.25rem;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.closeBtn {
+  background: var(--bg);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.totalCard {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white;
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.totalLabel {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  margin-bottom: 0.25rem;
+}
+
+.totalAmount {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+/* Steps guide */
+.stepsGuide {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.stepGuide {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.stepNum {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  min-width: 1.75rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.stepGuide strong {
+  font-size: 0.85rem;
+  color: var(--text);
+  display: block;
+  margin-bottom: 0.1rem;
+}
+
+.stepGuide p {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.createBtn {
+  width: 100%;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 0.8rem;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.createBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.createBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* QR Section */
+.qrSection {
+  text-align: center;
+}
+
+.qrLabel {
+  font-size: 0.9rem;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+
+.qrContainer {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  background: white;
+  border-radius: 1rem;
+  padding: 1rem;
+  display: inline-flex;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.qrUrl {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin-bottom: 1rem;
+}
+
+.membersRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.nextBtn {
+  width: 100%;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 0.8rem;
+  background: var(--primary);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.nextBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.nextBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Item selection */
+.selectSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.selectLabel {
+  font-size: 0.9rem;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.itemCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.itemCard:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+
+.itemCard.itemMine {
+  border-color: var(--primary);
+  background: rgba(201, 168, 76, 0.08);
+}
+
+.itemCard.itemTaken {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.itemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.itemName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.itemPrice {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.itemCheck {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.itemClaimedBy {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: var(--border);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.warningBanner {
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.8rem;
+  color: #92400e;
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.myTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+  border-radius: 0.7rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.myTotal span {
+  color: var(--text-secondary);
+}
+
+.myTotal strong {
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+/* Pay section */
+.paySection {
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.membersSection {
+  margin-bottom: 1rem;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--bg);
+  border-radius: 0.5rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.memberName {
+  flex: 1;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.memberAmount {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.memberPaid {
+  font-size: 0.7rem;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.memberPending {
+  font-size: 0.7rem;
+  color: #d97706;
+  background: #fffbeb;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.payBtn {
+  width: 100%;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 0.8rem;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  margin-bottom: 0.75rem;
+}
+
+.payBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.payBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paidBanner {
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: 0.8rem;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  color: #065f46;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.venuePayBtn {
+  width: 100%;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 0.8rem;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.venuePayBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.venuePayBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.waitingBanner {
+  background: #eff6ff;
+  border: 1px solid #3b82f6;
+  border-radius: 0.8rem;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  color: #1e40af;
+  font-size: 0.85rem;
+}
+
+/* Navigation */
+.stepNav {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.backBtn {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.backBtn:hover {
+  background: var(--bg);
+  border-color: var(--primary);
+  color: var(--primary);
+}

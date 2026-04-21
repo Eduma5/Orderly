@@ -1,0 +1,15 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import MenuApp from '../../components/customer/MenuApp';
+
+const { mesa } = Astro.params;
+const tableNumber = parseInt(mesa || '0');
+
+if (!tableNumber || tableNumber < 1) {
+  return Astro.redirect('/');
+}
+---
+
+<Layout title={`Mesa ${tableNumber} - ORDERLY`}>
+  <MenuApp client:load tableNumber={tableNumber} />
+</Layout>
