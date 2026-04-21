@@ -137,11 +137,6 @@ export async function createOrder(
   
   await supabase.from('order_items').insert(orderItemsInfo);
   return { ...order, items: orderItemsInfo } as any;
-}[],
-  paymentMethod?: string
-): Promise<Order> {
-  if (IS_DEMO) return mock.createOrder(tableNumber, items, paymentMethod);
-  throw new Error('Supabase not configured');
 }
 
 export async function getUnpaidOrdersByTable(tableNumber: number) {
@@ -181,7 +176,7 @@ export async function getPaidOrders(since?: string) {
 
 export async function updateOrderStatus(orderId: string, status: string, paymentMethod?: string): Promise<void> {
   if (IS_DEMO) return mock.updateOrderStatus(orderId, status, paymentMethod);
-  const updates: any = { status, updated_at: new Date().toISOString() };
+  const updates: any = { status };
   if (paymentMethod) updates.payment_method = paymentMethod;
   if (status === 'paid') updates.paid_at = new Date().toISOString();
   
@@ -233,7 +228,6 @@ export function subscribeToOrders(callback: (payload: any) => void) {
   return supabase.channel('orders_channel')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, callback)
     .subscribe();
-} };
 }
 
 // =========================
@@ -345,4 +339,3 @@ export async function getActiveGroupSessions(tableNumber: number): Promise<Group
   if (IS_DEMO) return mock.getActiveGroupSessions(tableNumber);
   throw new Error('Supabase not configured');
 }
-
