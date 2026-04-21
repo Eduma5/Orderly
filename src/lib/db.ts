@@ -166,7 +166,7 @@ export async function getOrders(status?: string): Promise<Order[]> {
   const { data, error } = await query;
   if (error) console.error(error);
   
-  return (data || []).map(o => ({...o, items: o.order_items})) as Order[];
+  return ((data || []) as any[]).map((order) => ({ ...order, items: order.order_items })) as Order[];
 }
 
 export async function getPaidOrders(since?: string) {
@@ -236,7 +236,7 @@ export function subscribeToOrders(callback: (payload: any) => void) {
 export async function getMyOrders() {
   if (IS_DEMO || !supabase) return mock.getMyOrders();
   throw new Error('Supabase not configured');
-}}
+}
 
 // =========================
 // MONEDERO (USER-LINKED)
@@ -338,4 +338,4 @@ export async function hostPayVenue(sessionId: string): Promise<void> {
 export async function getActiveGroupSessions(tableNumber: number): Promise<GroupSession[]> {
   if (IS_DEMO || !supabase) return mock.getActiveGroupSessions(tableNumber);
   throw new Error('Supabase not configured');
-}}
+}
