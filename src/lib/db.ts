@@ -45,7 +45,9 @@ export async function resetPassword(email: string, code: string, newPassword: st
 // =========================
 export async function getCategories(): Promise<Category[]> {
   if (IS_DEMO) return mock.getCategories();
-  throw new Error('Supabase not configured');
+  const { data, error } = await supabase.from('categories').select('*').order('order', { ascending: true });
+  if (error) console.error(error);
+  return (data as Category[]) || [];
 }
 
 // =========================
@@ -53,7 +55,9 @@ export async function getCategories(): Promise<Category[]> {
 // =========================
 export async function getProducts(): Promise<Product[]> {
   if (IS_DEMO) return mock.getProducts();
-  throw new Error('Supabase not configured');
+  const { data, error } = await supabase.from('products').select('*').order('order', { ascending: true });
+  if (error) console.error(error);
+  return (data as Product[]) || [];
 }
 
 export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
@@ -83,7 +87,9 @@ export async function toggleProductAvailability(productId: string, available: bo
 // =========================
 export async function getTables() {
   if (IS_DEMO) return mock.getTables();
-  throw new Error('Supabase not configured');
+  const { data, error } = await supabase.from('tables').select('*').order('number', { ascending: true });
+  if (error) console.error(error);
+  return data || [];
 }
 
 export async function upsertTable(table: { id?: string; number: number; name?: string; active?: boolean }) {
@@ -102,6 +108,36 @@ export async function deleteTable(tableId: string) {
 export async function createOrder(
   tableNumber: number,
   items: { product: Product; quantity: number; notes?: string }[],
+  paymentMethod?: string
+): Promise<Order> {
+  if (IS_DEMO) return mock.createOrder(tableNumber, items, paymentMethod);
+  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const totalCost = items.reduce((sum, item) => sum + (item.product.cost || 0) * item.quantity, 0);
+  
+  const { data: order, error } = await supabase.from('orders').insert({
+    table_number: tableNumber,
+    session_id: getSessionId(),
+    status: 'pending',
+    total,
+    total_cost: totalCost,
+    payment_method: paymentMethod || null,
+  }).select('*').single();
+  
+  if (error) throw error;
+  
+  const orderItemsInfo = items.map(i => ({
+    order_id: order.id,
+    product_id: i.product.id,
+    product_name: i.product.name,
+    quantity: i.quantity,
+    unit_price: i.product.price,
+    unit_cost: i.product.cost || 0,
+    notes: i.notes || null
+  }));
+  
+  await supabase.from('order_items').insert(orderItemsInfo);
+  return { ...order, items: orderItemsInfo } as any;
+}[],
   paymentMethod?: string
 ): Promise<Order> {
   if (IS_DEMO) return mock.createOrder(tableNumber, items, paymentMethod);
@@ -130,7 +166,12 @@ export async function getPartialPayments(tableNumber: number) {
 
 export async function getOrders(status?: string): Promise<Order[]> {
   if (IS_DEMO) return mock.getOrders(status);
-  throw new Error('Supabase not configured');
+  let query = supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false });
+  if (status) query = query.eq('status', status);
+  const { data, error } = await query;
+  if (error) console.error(error);
+  
+  return (data || []).map(o => ({...o, items: o.order_items})) as Order[];
 }
 
 export async function getPaidOrders(since?: string) {
@@ -140,7 +181,11 @@ export async function getPaidOrders(since?: string) {
 
 export async function updateOrderStatus(orderId: string, status: string, paymentMethod?: string): Promise<void> {
   if (IS_DEMO) return mock.updateOrderStatus(orderId, status, paymentMethod);
-  throw new Error('Supabase not configured');
+  const updates: any = { status, updated_at: new Date().toISOString() };
+  if (paymentMethod) updates.payment_method = paymentMethod;
+  if (status === 'paid') updates.paid_at = new Date().toISOString();
+  
+  await supabase.from('orders').update(updates).eq('id', orderId);
 }
 
 export async function setOrderStripePaymentId(orderId: string, stripePaymentId: string): Promise<void> {
@@ -185,7 +230,10 @@ export async function updateAdminSetting(key: string, value: string) {
 // =========================
 export function subscribeToOrders(callback: (payload: any) => void) {
   if (IS_DEMO) return mock.subscribeToOrders(callback);
-  return { unsubscribe: () => {} };
+  return supabase.channel('orders_channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, callback)
+    .subscribe();
+} };
 }
 
 // =========================
@@ -297,3 +345,4 @@ export async function getActiveGroupSessions(tableNumber: number): Promise<Group
   if (IS_DEMO) return mock.getActiveGroupSessions(tableNumber);
   throw new Error('Supabase not configured');
 }
+
