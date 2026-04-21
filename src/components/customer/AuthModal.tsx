@@ -39,10 +39,12 @@ export default function AuthModal({ tableNumber, onAuthenticated }: Props) {
         onAuthenticated(user);
       } else if (mode === 'forgot') {
         if (!email.trim()) { setError('Introduce tu email'); setLoading(false); return; }
-        const code = await requestPasswordReset(email.trim());
-        setResetCode(code);
-        setSuccess(`Tu código de verificación es: ${code}`);
-        setMode('reset');
+        const message = await requestPasswordReset(email.trim());
+        setSuccess(message);
+        setTimeout(() => {
+          setMode('login');
+          setSuccess('');
+        }, 2500);
       } else if (mode === 'reset') {
         if (!resetCode.trim()) { setError('Introduce el código de 6 dígitos'); setLoading(false); return; }
         if (newPassword.length < 4) { setError('La nueva contraseña debe tener al menos 4 caracteres'); setLoading(false); return; }

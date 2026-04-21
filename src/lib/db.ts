@@ -5,26 +5,79 @@ import { IS_DEMO, supabase, getSessionId } from './supabase';
 import * as mock from './mockDb';
 import type { Category, Product, Order, UserPublic, ServiceRequest, GroupSession } from './types';
 
+function toUserPublic(user: { id: string; email?: string | null; user_metadata?: Record<string, any>; created_at?: string }): UserPublic {
+  return {
+    id: user.id,
+    name: (user.user_metadata?.name as string) || user.email || 'Usuario',
+    email: user.email || '',
+    created_at: user.created_at || new Date().toISOString(),
+  };
+}
+
 // =========================
 // USUARIOS
 // =========================
 export async function registerUser(name: string, email: string, password: string): Promise<UserPublic> {
   if (IS_DEMO || !supabase) return mock.registerUser(name, email, password);
-  throw new Error('Supabase auth not configured');
+
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim(),
+    password,
+    options: {
+      data: { name: name.trim() },
+    },
+  });
+
+  if (error) throw error;
+  if (!data.user) throw new Error('No se pudo crear el usuario');
+
+  if (!data.session) {
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (signInError) {
+      throw new Error('La cuenta se creó, pero Supabase requiere confirmar el email antes de iniciar sesión. Desactiva la confirmación de correo en Auth o confirma el email y vuelve a entrar.');
+    }
+
+    if (signInData.user) return toUserPublic(signInData.user);
+  }
+
+  return toUserPublic(data.user);
 }
 
 export async function loginUser(email: string, password: string): Promise<UserPublic> {
   if (IS_DEMO || !supabase) return mock.loginUser(email, password);
-  throw new Error('Supabase auth not configured');
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
+  });
+
+  if (error) throw error;
+  if (!data.user) throw new Error('No se pudo iniciar sesión');
+
+  return toUserPublic(data.user);
 }
 
 export async function getCurrentUser(): Promise<UserPublic | null> {
   if (IS_DEMO || !supabase) return mock.getCurrentUser();
-  return null;
+
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error(error);
+    return null;
+  }
+
+  if (!data.user) return null;
+  return toUserPublic(data.user);
 }
 
 export async function logoutUser(): Promise<void> {
   if (IS_DEMO || !supabase) return mock.logoutUser();
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 }
 
 // =========================
@@ -32,12 +85,20 @@ export async function logoutUser(): Promise<void> {
 // =========================
 export async function requestPasswordReset(email: string): Promise<string> {
   if (IS_DEMO || !supabase) return mock.requestPasswordReset(email);
-  throw new Error('Supabase not configured');
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+  });
+
+  if (error) throw error;
+  return 'Revisa tu email para continuar con el reseteo';
 }
 
 export async function resetPassword(email: string, code: string, newPassword: string): Promise<void> {
   if (IS_DEMO || !supabase) return mock.resetPassword(email, code, newPassword);
-  throw new Error('Supabase not configured');
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
 }
 
 // =========================

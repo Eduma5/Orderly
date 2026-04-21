@@ -21,6 +21,7 @@ import MyTickets from './MyTickets';
 import OrderTracker from './OrderTracker';
 import Wallet from './Wallet';
 import Chatbot from './Chatbot';
+import AuthModal from './AuthModal';
 import SplitPayment from './SplitPayment';
 import GroupPayment from './GroupPayment';
 import styles from './MenuApp.module.css';
@@ -58,24 +59,11 @@ export default function MenuApp({ tableNumber }: Props) {
         const existing = await getCurrentUser();
         if (existing) {
           setUser(existing);
-          return;
         }
-
-        const guestUser: UserPublic = {
-          id: `guest_${Date.now()}`,
-          name: 'Invitado',
-          email: '',
-          created_at: new Date().toISOString(),
-        };
-
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('ema_user_id', guestUser.id);
-          localStorage.setItem('ema_user_token', `guest_${guestUser.id}`);
-        }
-
-        setUser(guestUser);
       } catch { /* ignore */ }
-      setUserLoading(false);
+      finally {
+        setUserLoading(false);
+      }
     }
     checkAuth();
   }, [setUser, setUserLoading]);
@@ -154,6 +142,21 @@ export default function MenuApp({ tableNumber }: Props) {
     setPaymentOpen(false);
     refreshUnpaid();
   };
+
+  // Auth gate: mostrar acceso si no hay usuario autenticado
+  if (!user) {
+    return (
+      <div className={styles.app}>
+        <AuthModal
+          tableNumber={tableNumber}
+          onAuthenticated={(u) => {
+            setUser(u);
+            toast.success(`¡Hola ${u.name}! Bienvenido a ORDERLY`, { duration: 3000 });
+          }}
+        />
+      </div>
+    );
+  }
 
   // Llamar al camarero
   const handleCallWaiter = async () => {
