@@ -1,7 +1,7 @@
 // ============================================
 // Capa de Datos — Router demo / Supabase
 // ============================================
-import { IS_DEMO } from './supabase';
+import { IS_DEMO, supabase, getSessionId } from './supabase';
 import * as mock from './mockDb';
 import type { Category, Product, Order, UserPublic, ServiceRequest, GroupSession } from './types';
 
@@ -44,7 +44,7 @@ export async function resetPassword(email: string, code: string, newPassword: st
 // CATEGORÍAS
 // =========================
 export async function getCategories(): Promise<Category[]> {
-  if (IS_DEMO) return mock.getCategories();
+  if (IS_DEMO || !supabase) return mock.getCategories();
   const { data, error } = await supabase.from('categories').select('*').order('order', { ascending: true });
   if (error) console.error(error);
   return (data as Category[]) || [];
@@ -54,7 +54,7 @@ export async function getCategories(): Promise<Category[]> {
 // PRODUCTOS
 // =========================
 export async function getProducts(): Promise<Product[]> {
-  if (IS_DEMO) return mock.getProducts();
+  if (IS_DEMO || !supabase) return mock.getProducts();
   const { data, error } = await supabase.from('products').select('*').order('order', { ascending: true });
   if (error) console.error(error);
   return (data as Product[]) || [];
@@ -86,7 +86,7 @@ export async function toggleProductAvailability(productId: string, available: bo
 // MESAS
 // =========================
 export async function getTables() {
-  if (IS_DEMO) return mock.getTables();
+  if (IS_DEMO || !supabase) return mock.getTables();
   const { data, error } = await supabase.from('tables').select('*').order('number', { ascending: true });
   if (error) console.error(error);
   return data || [];
@@ -110,7 +110,7 @@ export async function createOrder(
   items: { product: Product; quantity: number; notes?: string }[],
   paymentMethod?: string
 ): Promise<Order> {
-  if (IS_DEMO) return mock.createOrder(tableNumber, items, paymentMethod);
+  if (IS_DEMO || !supabase) return mock.createOrder(tableNumber, items, paymentMethod);
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const totalCost = items.reduce((sum, item) => sum + (item.product.cost || 0) * item.quantity, 0);
   
@@ -160,7 +160,7 @@ export async function getPartialPayments(tableNumber: number) {
 }
 
 export async function getOrders(status?: string): Promise<Order[]> {
-  if (IS_DEMO) return mock.getOrders(status);
+  if (IS_DEMO || !supabase) return mock.getOrders(status);
   let query = supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false });
   if (status) query = query.eq('status', status);
   const { data, error } = await query;
@@ -175,7 +175,7 @@ export async function getPaidOrders(since?: string) {
 }
 
 export async function updateOrderStatus(orderId: string, status: string, paymentMethod?: string): Promise<void> {
-  if (IS_DEMO) return mock.updateOrderStatus(orderId, status, paymentMethod);
+  if (IS_DEMO || !supabase) return mock.updateOrderStatus(orderId, status, paymentMethod);
   const updates: any = { status };
   if (paymentMethod) updates.payment_method = paymentMethod;
   if (status === 'paid') updates.paid_at = new Date().toISOString();
@@ -224,7 +224,7 @@ export async function updateAdminSetting(key: string, value: string) {
 // REALTIME
 // =========================
 export function subscribeToOrders(callback: (payload: any) => void) {
-  if (IS_DEMO) return mock.subscribeToOrders(callback);
+  if (IS_DEMO || !supabase) return mock.subscribeToOrders(callback);
   return supabase.channel('orders_channel')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, callback)
     .subscribe();
