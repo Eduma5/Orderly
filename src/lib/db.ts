@@ -544,40 +544,187 @@ export async function updateServiceRequestStatus(
 // =========================
 export async function createGroupSession(tableNumber: number, orderIds: string[]): Promise<GroupSession> {
   if (IS_DEMO || !supabase) return mock.createGroupSession(tableNumber, orderIds);
-  throw new Error('Supabase not configured');
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Debes iniciar sesión para crear un grupo');
+
+  // Obtener items de las órdenes
+  const { data: orderItems, error: itemsErr } = await supabase
+    .from('order_items')
+    .select('*')
+    .in('order_id', orderIds);
+  
+  if (itemsErr) throw itemsErr;
+
+  // Insertar sesión
+  const { data: session, error: sessErr } = await supabase
+    .from('group_sessions')
+    .insert({
+      host_user_id: user.id,
+      host_name: user.name,
+      table_number: tableNumber,
+      order_ids: orderIds,
+      status: 'active'
+    })
+    .select()
+    .single();
+
+  if (sessErr) throw sessErr;
+
+  // Insertar items de sesión (separados por unidad para fácil claim)
+  const expandedItems = [];
+  for (const item of (orderItems || [])) {
+    for (let i = 0; i < item.quantity; i++) {
+      expandedItems.push({
+        session_id: session.id,
+        product_name: item.product_name,
+        quantity: 1,
+        unit_price: item.unit_price,
+        claimed_by: null
+      });
+    }
+  }
+
+  if (expandedItems.length > 0) {
+    const { error: expErr } = await supabase.from('group_session_items').insert(expandedItems);
+    if (expErr) throw expErr;
+  }
+
+  // Insertar host como miembro inicial
+  const { error: memErr } = await supabase.from('group_members').insert({
+    session_id: session.id,
+    user_id: user.id,
+    name: user.name,
+    amount: 0,
+    paid: false
+  });
+
+  if (memErr) throw memErr;
+
+  return getGroupSession(session.id) as Promise<GroupSession>;
 }
 
 export async function getGroupSession(sessionId: string): Promise<GroupSession | null> {
   if (IS_DEMO || !supabase) return mock.getGroupSession(sessionId);
-  throw new Error('Supabase not configured');
+  const { data, error } = await supabase
+    .from('group_sessions')
+    .select(`
+      *,
+      items:group_session_items(*),
+      members:group_members(*)
+    `)
+    .eq('id', sessionId)
+    .single();
+
+  if (error || !data) return null;
+  return data as unknown as GroupSession;
 }
 
 export async function joinGroupSession(sessionId: string): Promise<GroupSession> {
   if (IS_DEMO || !supabase) return mock.joinGroupSession(sessionId);
-  throw new Error('Supabase not configured');
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Debes iniciar sesión para unirte al grupo');
+
+  // Insert ignored if already exists via unique constraint
+  await supabase.from('group_members').insert({
+    session_id: sessionId,
+    user_id: user.id,
+    name: user.name,
+    amount: 0,
+    paid: false
+  });
+  
+  return getGroupSession(sessionId) as Promise<GroupSession>;
 }
 
 export async function claimGroupItem(sessionId: string, itemId: string): Promise<GroupSession> {
   if (IS_DEMO || !supabase) return mock.claimGroupItem(sessionId, itemId);
-  throw new Error('Supabase not configured');
+  const user = await getCurrentUser();
+  if (!user) throw new Error('No autorizado');
+
+  const { error } = await supabase
+    .from('group_session_items')
+    .update({ claimed_by: user.id })
+    .eq('id', itemId)
+    .eq('session_id', sessionId)
+    .is('claimed_by', null);
+  
+  if (error) throw new Error('El item ya ha sido reclamado o no existe');
+  return updateMemberAmounts(sessionId);
 }
 
 export async function unclaimGroupItem(sessionId: string, itemId: string): Promise<GroupSession> {
   if (IS_DEMO || !supabase) return mock.unclaimGroupItem(sessionId, itemId);
-  throw new Error('Supabase not configured');
+  const user = await getCurrentUser();
+  if (!user) throw new Error('No autorizado');
+
+  const { error } = await supabase
+    .from('group_session_items')
+    .update({ claimed_by: null })
+    .eq('id', itemId)
+    .eq('session_id', sessionId)
+    .eq('claimed_by', user.id);
+  
+  if (error) throw error;
+  return updateMemberAmounts(sessionId);
+}
+
+async function updateMemberAmounts(sessionId: string): Promise<GroupSession> {
+  // Recalcular montos
+  const session = await getGroupSession(sessionId);
+  if (!session) throw new Error('Sesión no encontrada');
+
+  const memberTotals: Record<string, number> = {};
+  session.items.forEach(item => {
+    if (item.claimed_by) {
+      memberTotals[item.claimed_by] = (memberTotals[item.claimed_by] || 0) + item.unit_price;
+    }
+  });
+
+  for (const member of session.members) {
+    const amount = Number(memberTotals[member.user_id] || 0);
+    await supabase.from('group_members').update({ amount }).eq('session_id', sessionId).eq('user_id', member.user_id);
+  }
+  
+  return getGroupSession(sessionId) as Promise<GroupSession>;
 }
 
 export async function payGroupShare(sessionId: string): Promise<GroupSession> {
   if (IS_DEMO || !supabase) return mock.payGroupShare(sessionId);
-  throw new Error('Supabase not configured');
+  const user = await getCurrentUser();
+  if (!user) throw new Error('No autorizado');
+
+  const { error } = await supabase
+    .from('group_members')
+    .update({ paid: true })
+    .eq('session_id', sessionId)
+    .eq('user_id', user.id);
+    
+  if (error) throw error;
+  return getGroupSession(sessionId) as Promise<GroupSession>;
 }
 
 export async function hostPayVenue(sessionId: string): Promise<void> {
   if (IS_DEMO || !supabase) return mock.hostPayVenue(sessionId);
-  throw new Error('Supabase not configured');
+  const session = await getGroupSession(sessionId);
+  if (!session) throw new Error('Sesión no encontrada');
+  
+  // Mark as completed
+  await supabase.from('group_sessions').update({ status: 'completed' }).eq('id', sessionId);
+  
+  // Create service request for partial group payment
+  await createServiceRequest('solicitud_pago', session.table_number, {
+    method: 'otro',
+    total: session.members.reduce((sum, m) => sum + m.amount, 0),
+    orderIds: session.order_ids
+  });
 }
 
 export async function getActiveGroupSessions(tableNumber: number): Promise<GroupSession[]> {
   if (IS_DEMO || !supabase) return mock.getActiveGroupSessions(tableNumber);
-  throw new Error('Supabase not configured');
+  const { data } = await supabase
+    .from('group_sessions')
+    .select(`*, items:group_session_items(*), members:group_members(*)`)
+    .eq('table_number', tableNumber)
+    .eq('status', 'active');
+  return (data || []) as unknown as GroupSession[];
 }
