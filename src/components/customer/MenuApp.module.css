@@ -32,10 +32,10 @@
 .heroBanner {
   width: 100%;
   height: auto;
-  min-height: 80px;
   max-height: 150px;
-  object-fit: cover;
-  object-position: center center;
+  object-fit: contain;
+  object-position: left center;
+  background-color: #000;
   display: block;
 }
 
@@ -146,8 +146,8 @@
     padding: 0.5rem 0.625rem 0.25rem;
   }
   .heroBanner {
-    min-height: 60px;
     max-height: 100px;
+    object-position: left center;
   }
   .main {
     padding: 0 0.625rem 1rem;
