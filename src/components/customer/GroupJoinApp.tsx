@@ -106,13 +106,20 @@ export default function GroupJoinApp({ sessionId }: Props) {
   };
 
   // Pay share
-  const handlePayShare = async () => {
+  const handlePayShare = async (method: 'wallet' | 'cash_admin' | 'cash_bar') => {
     if (!session) return;
     setPaying(true);
     try {
       const updated = await payGroupShare(session.id);
       setSession(updated);
-      toast.success('Tu parte ha sido pagada al anfitrion.');
+      
+      if (method === 'wallet') {
+        toast.success('Pagado con monedero al anfitrion.');
+      } else if (method === 'cash_admin') {
+        toast.success('Pagas en efectivo al anfitrion.', { icon: '💵' });
+      } else {
+        toast.success('Pagas en efectivo al Bar directamente.', { icon: '🍺' });
+      }
     } catch (err: any) {
       toast.error(err.message || 'Error al pagar');
     } finally {
@@ -285,13 +292,31 @@ export default function GroupJoinApp({ sessionId }: Props) {
             </div>
 
             {!myMember?.paid ? (
-              <button
-                className={styles.payBtn}
-                onClick={handlePayShare}
-                disabled={paying || myTotal <= 0}
-              >
-                {paying ? 'Procesando...' : `Pagar ${myTotal.toFixed(2)} EUR al monedero del anfitrion`}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                <button
+                  className={styles.payBtn}
+                  onClick={() => handlePayShare('wallet')}
+                  disabled={paying || myTotal <= 0}
+                  style={{ marginBottom: 0 }}
+                >
+                  {paying ? 'Procesando...' : `💳 ${myTotal.toFixed(2)} € al monedero del jefe`}
+                </button>
+                <button
+                  className={styles.backBtn}
+                  onClick={() => handlePayShare('cash_admin')}
+                  disabled={paying || myTotal <= 0}
+                  style={{ marginBottom: 0 }}
+                >
+                  💵 Pagar en efectivo al anfitrión
+                </button>
+                <button
+                  className={styles.backBtn}
+                  onClick={() => handlePayShare('cash_bar')}
+                  disabled={paying || myTotal <= 0}
+                >
+                  🏠 Pagar en efectivo al Bar
+                </button>
+              </div>
             ) : (
               <div className={styles.paidBanner}>Tu parte esta pagada</div>
             )}
@@ -299,6 +324,7 @@ export default function GroupJoinApp({ sessionId }: Props) {
             <button
               className={styles.backBtn}
               onClick={() => setStep('select')}
+              style={{ borderStyle: 'dashed' }}
             >
               Volver a seleccionar platos
             </button>

@@ -93,13 +93,24 @@ export default function GroupPayment({ isOpen, onClose, onComplete, tableNumber,
   };
 
   // Pagar mi parte al monedero del anfitrion
-  const handlePayShare = async () => {
+  const handlePayShare = async (method: 'wallet' | 'cash_admin' | 'cash_bar') => {
     if (!session) return;
     setPaying(true);
     try {
       const updated = await payGroupShare(session.id);
       setSession(updated);
-      toast.success('Tu parte ha sido pagada al monedero del anfitrion.');
+      
+      if (isHost) {
+        toast.success(`Tu parte (${myTotal.toFixed(2)}€) ha sido confirmada.`);
+      } else {
+        if (method === 'wallet') {
+          toast.success('Pagado con monedero al anfitrion.');
+        } else if (method === 'cash_admin') {
+          toast.success('Pagas en efectivo al anfitrion.', { icon: '💵' });
+        } else {
+          toast.success('Pagas en efectivo al Bar directamente.', { icon: '🍺' });
+        }
+      }
     } catch (err: any) {
       toast.error(err.message || 'Error al pagar');
     } finally {
@@ -311,18 +322,41 @@ export default function GroupPayment({ isOpen, onClose, onComplete, tableNumber,
 
             {/* Boton pagar mi parte */}
             {!myMember?.paid && myTotal > 0 && (
-              <button
-                className={styles.payBtn}
-                onClick={handlePayShare}
-                disabled={paying}
-              >
-                {paying ? 'Procesando...' : isHost
-                  ? `Confirmar mi parte (${myTotal.toFixed(2)} EUR)`
-                  : `Pagar ${myTotal.toFixed(2)} EUR al monedero del anfitrion`
-                }
-              </button>
-            )}
-
+                isHost ? (
+                  <button
+                    className={styles.payBtn}
+                    onClick={() => handlePayShare('wallet')}
+                    disabled={paying}
+                  >
+                    {paying ? 'Procesando...' : `Confirmar mi parte (${myTotal.toFixed(2)} €)`}
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <button
+                      className={styles.payBtn}
+                      onClick={() => handlePayShare('wallet')}
+                      disabled={paying}
+                      style={{ marginBottom: 0 }}
+                    >
+                      {paying ? 'Procesando...' : `💳 ${myTotal.toFixed(2)} € al monedero del jefe`}
+                    </button>
+                    <button
+                      className={styles.backBtn}
+                      onClick={() => handlePayShare('cash_admin')}
+                      disabled={paying}
+                      style={{ marginBottom: 0 }}
+                    >
+                      💵 Pagar en efectivo al anfitrión
+                    </button>
+                    <button
+                      className={styles.backBtn}
+                      onClick={() => handlePayShare('cash_bar')}
+                      disabled={paying}
+                    >
+                      🏠 Pagar en efectivo al Bar
+                    </button>
+                  </div>
+                )
             {myMember?.paid && (
               <div className={styles.paidBanner}>
                 Tu parte esta pagada
