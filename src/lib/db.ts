@@ -380,22 +380,88 @@ export async function getMyOrders() {
 // =========================
 export async function getWalletBalance(): Promise<number> {
   if (IS_DEMO) return mock.getWalletBalance();
-  return 0;
+  const sessionId = getSessionId();
+  const { data, error } = await supabase
+    .from('wallets')
+    .select('balance')
+    .eq('session_id', sessionId)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') console.error('Error getWalletBalance:', error);
+  return data ? Number(data.balance) : 0;
 }
 
-export async function getWalletTransactions() {
+export async function getWalletTransactions(): Promise<WalletTransaction[]> {
   if (IS_DEMO) return mock.getWalletTransactions();
-  return [];
+  const sessionId = getSessionId();
+  const { data, error } = await supabase
+    .from('wallet_transactions')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: false });
+  
+  if (error) console.error('Error getWalletTransactions:', error);
+  return (data as WalletTransaction[]) || [];
 }
 
 export async function rechargeWallet(amount: number): Promise<number> {
   if (IS_DEMO || !supabase) return mock.rechargeWallet(amount);
-  throw new Error('Supabase not configured');
+  
+  // En lugar de actualizar la BD aquí localmente,
+  // vamos a contactar con Stripe para hacer una sesión de checkout.
+  // El front-end recibirá la URL y redirigirá.
+  const sessionId = getSessionId();
+  const response = await fetch('/api/stripe/create-wallet-recharge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount, sessionId }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Error al conectar con Stripe');
+  }
+
+  const { url } = await response.json();
+  if (url) {
+    // Redirigir la ventana a Stripe
+    window.location.href = url;
+    return new Promise(() => {}); // nunca resuelve, pues estamos redirigiendo
+  }
+  
+  throw new Error('Stripe Checkout no devolvió URL');
 }
 
 export async function payWithWallet(amount: number, description: string): Promise<number> {
   if (IS_DEMO || !supabase) return mock.payWithWallet(amount, description);
-  throw new Error('Supabase not configured');
+  
+  const sessionId = getSessionId();
+  
+  // 1. Obtener balance actual (para asegurar que hay)
+  const currentBalance = await getWalletBalance();
+  if (currentBalance < amount) throw new Error('Saldo insuficiente en tu monedero');
+  
+  const newBalance = Math.round((currentBalance - amount) * 100) / 100;
+  
+  // 2. Actualizar cartera
+  const { error: wErr } = await supabase
+    .from('wallets')
+    .update({ balance: newBalance })
+    .eq('session_id', sessionId);
+  if (wErr) throw new Error('Error al actualizar el saldo de monedero');
+  
+  // 3. Insertar transacción de pago
+  const { error: tErr } = await supabase
+    .from('wallet_transactions')
+    .insert({
+      session_id: sessionId,
+      type: 'payment',
+      amount: amount,
+      description
+    });
+  if (tErr) console.error('Error guardando transacción wallet:', tErr);
+  
+  return newBalance;
 }
 
 // =========================

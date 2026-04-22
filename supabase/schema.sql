@@ -325,3 +325,33 @@ insert into admin_settings (key, value) values
   ('cash_enabled', 'true'),
   ('bizum_enabled', 'false'),
   ('base_url', '');
+- -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+ - -   M O N E D E R O   ( W A L L E T ) 
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+ c r e a t e   t a b l e   i f   n o t   e x i s t s   w a l l e t s   ( 
+     s e s s i o n _ i d   t e x t   p r i m a r y   k e y , 
+     b a l a n c e   n u m e r i c ( 1 0 , 2 )   n o t   n u l l   d e f a u l t   0 , 
+     c r e a t e d _ a t   t i m e s t a m p t z   n o t   n u l l   d e f a u l t   n o w ( ) , 
+     u p d a t e d _ a t   t i m e s t a m p t z   n o t   n u l l   d e f a u l t   n o w ( ) 
+ ) ; 
+ 
+ c r e a t e   t a b l e   i f   n o t   e x i s t s   w a l l e t _ t r a n s a c t i o n s   ( 
+     i d   u u i d   p r i m a r y   k e y   d e f a u l t   u u i d _ g e n e r a t e _ v 4 ( ) , 
+     s e s s i o n _ i d   t e x t   n o t   n u l l   r e f e r e n c e s   w a l l e t s ( s e s s i o n _ i d )   o n   d e l e t e   c a s c a d e , 
+     t y p e   t e x t   n o t   n u l l   c h e c k   ( t y p e   i n   ( ' r e c h a r g e ' ,   ' p a y m e n t ' ) ) , 
+     a m o u n t   n u m e r i c ( 1 0 , 2 )   n o t   n u l l , 
+     d e s c r i p t i o n   t e x t , 
+     s t r i p e _ p a y m e n t _ i d   t e x t , 
+     c r e a t e d _ a t   t i m e s t a m p t z   n o t   n u l l   d e f a u l t   n o w ( ) 
+ ) ; 
+ 
+ a l t e r   t a b l e   w a l l e t s   e n a b l e   r o w   l e v e l   s e c u r i t y ; 
+ c r e a t e   p o l i c y   " w a l l e t s _ a l l "   o n   w a l l e t s   f o r   a l l   u s i n g   ( t r u e ) ; 
+ 
+ a l t e r   t a b l e   w a l l e t _ t r a n s a c t i o n s   e n a b l e   r o w   l e v e l   s e c u r i t y ; 
+ c r e a t e   p o l i c y   " w a l l e t _ t x _ a l l "   o n   w a l l e t _ t r a n s a c t i o n s   f o r   a l l   u s i n g   ( t r u e ) ; 
+ 
+ c r e a t e   t r i g g e r   w a l l e t s _ u p d a t e d _ a t 
+     b e f o r e   u p d a t e   o n   w a l l e t s 
+     f o r   e a c h   r o w   e x e c u t e   f u n c t i o n   u p d a t e _ u p d a t e d _ a t ( ) ;  
+ 

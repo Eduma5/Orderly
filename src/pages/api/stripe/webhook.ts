@@ -32,6 +32,38 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    if (session.metadata?.type === 'wallet_recharge') {
+      const sessionId = session.metadata.session_id;
+      const amountStr = session.metadata.amount;
+      if (sessionId && amountStr) {
+        const amount = Number(amountStr);
+        // 1. Check if wallet exists
+        const { data: w } = await supabase.from('wallets').select('balance').eq('session_id', sessionId).single();
+        
+        let newBalance = amount;
+        if (w) {
+          newBalance = Math.round((Number(w.balance) + amount) * 100) / 100;
+          await supabase.from('wallets').update({ balance: newBalance }).eq('session_id', sessionId);
+        } else {
+          await supabase.from('wallets').insert({ session_id: sessionId, balance: newBalance });
+        }
+        
+        // 2. Insert transaction
+        await supabase.from('wallet_transactions').insert({
+          session_id: sessionId,
+          type: 'recharge',
+          amount: amount,
+          description: `Recarga de Monedero por Stripe (${amount}€)`,
+          stripe_payment_id: session.payment_intent as string || session.id
+        });
+        
+        console.log(`Recargado monedero para ${sessionId}: +${amount}€`);
+      }
+    }
+  }
+
   if (event.type === 'payment_intent.succeeded') {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
     const orderId = paymentIntent.metadata?.order_id;

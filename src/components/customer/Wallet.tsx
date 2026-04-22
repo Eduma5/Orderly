@@ -44,6 +44,23 @@ export default function Wallet({ isOpen, onClose }: Props) {
     if (isOpen) loadData();
   }, [isOpen]);
 
+  // Read URL params to show success message if coming back from Stripe
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('recharge') === 'success') {
+        toast.success('¡Recarga completada con éxito!');
+        // remove query param
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      } else if (params.get('recharge') === 'cancel') {
+        toast.error('Recarga cancelada');
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, []);
+
   const handleRecharge = async () => {
     const amount = selectedAmount || parseFloat(customAmount);
     if (!amount || amount <= 0) {
@@ -52,15 +69,10 @@ export default function Wallet({ isOpen, onClose }: Props) {
     }
     setLoading(true);
     try {
-      const newBalance = await rechargeWallet(amount);
-      setBalance(newBalance);
-      setSelectedAmount(null);
-      setCustomAmount('');
-      toast.success(`+${amount.toFixed(2)} € recargados en tu monedero`);
-      await loadData();
+      // rechargeWallet ahora redirige a Stripe
+      await rechargeWallet(amount);
     } catch (err: any) {
-      toast.error(err?.message || 'Error al recargar');
-    } finally {
+      toast.error(err?.message || 'Error al conectar con pago');
       setLoading(false);
     }
   };
