@@ -322,41 +322,43 @@ export default function GroupPayment({ isOpen, onClose, onComplete, tableNumber,
 
             {/* Boton pagar mi parte */}
             {!myMember?.paid && myTotal > 0 && (
-                isHost ? (
+              isHost ? (
+                <button
+                  className={styles.payBtn}
+                  onClick={() => handlePayShare('wallet')}
+                  disabled={paying}
+                >
+                  {paying ? 'Procesando...' : `Confirmar mi parte (${myTotal.toFixed(2)} €)`}
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
                   <button
                     className={styles.payBtn}
                     onClick={() => handlePayShare('wallet')}
                     disabled={paying}
+                    style={{ marginBottom: 0 }}
                   >
-                    {paying ? 'Procesando...' : `Confirmar mi parte (${myTotal.toFixed(2)} €)`}
+                    {paying ? 'Procesando...' : `💳 ${myTotal.toFixed(2)} € al monedero del jefe`}
                   </button>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <button
-                      className={styles.payBtn}
-                      onClick={() => handlePayShare('wallet')}
-                      disabled={paying}
-                      style={{ marginBottom: 0 }}
-                    >
-                      {paying ? 'Procesando...' : `💳 ${myTotal.toFixed(2)} € al monedero del jefe`}
-                    </button>
-                    <button
-                      className={styles.backBtn}
-                      onClick={() => handlePayShare('cash_admin')}
-                      disabled={paying}
-                      style={{ marginBottom: 0 }}
-                    >
-                      💵 Pagar en efectivo al anfitrión
-                    </button>
-                    <button
-                      className={styles.backBtn}
-                      onClick={() => handlePayShare('cash_bar')}
-                      disabled={paying}
-                    >
-                      🏠 Pagar en efectivo al Bar
-                    </button>
-                  </div>
-                )
+                  <button
+                    className={styles.backBtn}
+                    onClick={() => handlePayShare('cash_admin')}
+                    disabled={paying}
+                    style={{ marginBottom: 0 }}
+                  >
+                    💵 Pagar en efectivo al anfitrión
+                  </button>
+                  <button
+                    className={styles.backBtn}
+                    onClick={() => handlePayShare('cash_bar')}
+                    disabled={paying}
+                  >
+                    🏠 Pagar en efectivo al Bar
+                  </button>
+                </div>
+              )
+            )}
+
             {myMember?.paid && (
               <div className={styles.paidBanner}>
                 Tu parte esta pagada
