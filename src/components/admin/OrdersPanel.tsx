@@ -12,7 +12,6 @@ import {
   IoCallOutline,
   IoCheckmarkOutline,
   IoHourglassOutline,
-  IoCloseCircleOutline,
 } from 'react-icons/io5';
 import { toast } from 'react-hot-toast';
 import {

@@ -156,24 +156,56 @@ export async function getProducts(): Promise<Product[]> {
 
 export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
   if (IS_DEMO || !supabase) return mock.getProductsByCategory(categoryId);
-  throw new Error('Supabase not configured');
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('category_id', categoryId)
+    .order('order', { ascending: true });
+  if (error) throw error;
+  return (data as Product[]) || [];
 }
 
 export async function upsertProduct(
   product: Partial<Product> & { category_id: string; name: string; price: number }
 ): Promise<Product> {
   if (IS_DEMO || !supabase) return mock.upsertProduct(product);
-  throw new Error('Supabase not configured');
+  const payload = {
+    id: product.id,
+    category_id: product.category_id,
+    name: product.name,
+    description: product.description || null,
+    price: product.price,
+    cost: product.cost ?? null,
+    image_url: product.image_url || null,
+    tags: product.tags || [],
+    allergens: product.allergens || [],
+    available: product.available ?? true,
+    order: product.order ?? 1,
+  };
+
+  const { data, error } = await supabase
+    .from('products')
+    .upsert(payload as any)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Product;
 }
 
 export async function deleteProduct(productId: string): Promise<void> {
   if (IS_DEMO || !supabase) return mock.deleteProduct(productId);
-  throw new Error('Supabase not configured');
+  const { error } = await supabase.from('products').delete().eq('id', productId);
+  if (error) throw error;
 }
 
 export async function toggleProductAvailability(productId: string, available: boolean): Promise<void> {
   if (IS_DEMO || !supabase) return mock.toggleProductAvailability(productId, available);
-  throw new Error('Supabase not configured');
+  const { error } = await supabase
+    .from('products')
+    .update({ available })
+    .eq('id', productId);
+  if (error) throw error;
 }
 
 // =========================
@@ -188,12 +220,27 @@ export async function getTables() {
 
 export async function upsertTable(table: { id?: string; number: number; name?: string; active?: boolean }) {
   if (IS_DEMO || !supabase) return mock.upsertTable(table);
-  throw new Error('Supabase not configured');
+  const payload = {
+    id: table.id,
+    number: table.number,
+    name: table.name || null,
+    active: table.active ?? true,
+  };
+
+  const { data, error } = await supabase
+    .from('tables')
+    .upsert(payload as any)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data;
 }
 
 export async function deleteTable(tableId: string) {
   if (IS_DEMO || !supabase) return mock.deleteTable(tableId);
-  throw new Error('Supabase not configured');
+  const { error } = await supabase.from('tables').delete().eq('id', tableId);
+  if (error) throw error;
 }
 
 // =========================
@@ -439,7 +486,11 @@ export async function updateOrderStatus(orderId: string, status: string, payment
 
 export async function setOrderStripePaymentId(orderId: string, stripePaymentId: string): Promise<void> {
   if (IS_DEMO || !supabase) return mock.setOrderStripePaymentId(orderId, stripePaymentId);
-  throw new Error('Supabase not configured');
+  const { error } = await supabase
+    .from('orders')
+    .update({ stripe_payment_id: stripePaymentId })
+    .eq('id', orderId);
+  if (error) throw error;
 }
 
 // =========================
