@@ -19,6 +19,7 @@ import {
   updateOrderStatus,
   subscribeToOrders,
   getServiceRequests,
+  getRecentPartialPayments,
   updateServiceRequestStatus,
   payOrders,
 } from '../../lib/db';
@@ -36,6 +37,15 @@ interface OrderData {
   payment_method: string | null;
   created_at: string;
   items: { product_name: string; quantity: number; unit_price: number; unit_cost: number; notes?: string }[];
+}
+
+interface PartialPaymentData {
+  id: string;
+  table_number: number;
+  amount: number;
+  payment_method: string;
+  payer_name: string;
+  created_at: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
@@ -99,6 +109,7 @@ export default function OrdersPanel() {
   const [loading, setLoading] = useState(true);
   const [lastOrderCount, setLastOrderCount] = useState<number | null>(null);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
+  const [partialPayments, setPartialPayments] = useState<PartialPaymentData[]>([]);
   const lastRequestCountRef = useRef<number>(0);
 
   const loadOrders = useCallback(async () => {
@@ -127,13 +138,24 @@ export default function OrdersPanel() {
     }
   }, []);
 
+  const loadPartials = useCallback(async () => {
+    try {
+      const data = await getRecentPartialPayments(30);
+      setPartialPayments(data as PartialPaymentData[]);
+    } catch (err) {
+      console.error('Error loading partial payments:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadOrders().then((count) => setLastOrderCount(count));
     loadRequests().then((count) => { lastRequestCountRef.current = count; });
+    loadPartials();
 
     const channel = subscribeToOrders(async (payload) => {
       const newOrderCount = await loadOrders();
       const newReqCount = await loadRequests();
+      await loadPartials();
 
       if (payload.eventType === 'BROADCAST' || payload.eventType === 'STORAGE') {
         // Notificar nuevos pedidos
@@ -167,7 +189,7 @@ export default function OrdersPanel() {
     return () => {
       channel.unsubscribe();
     };
-  }, [loadOrders, loadRequests]);
+  }, [loadOrders, loadRequests, loadPartials]);
 
   const filteredOrders =
     filter === 'all'
@@ -246,6 +268,32 @@ export default function OrdersPanel() {
   return (
     <div className={styles.panel}>
       {/* === SOLICITUDES DE SERVICIO === */}
+      {partialPayments.length > 0 && (
+        <div className={styles.requestsSection}>
+          <h3 className={styles.requestsTitle}>💸 Pagos parciales recientes ({partialPayments.length})</h3>
+          <div className={styles.requestsList}>
+            {partialPayments.map((p) => (
+              <div key={p.id} className={styles.requestCard}>
+                <div className={styles.requestHeader}>
+                  <div className={styles.requestType}>
+                    <IoWalletOutline size={18} />
+                    <span>Parcial · Mesa {p.table_number}</span>
+                  </div>
+                  <span className={styles.requestTime}>{formatTime(p.created_at)}</span>
+                </div>
+                <div className={styles.requestInfo}>
+                  <span className={styles.requestUser}>
+                    <IoPersonOutline size={12} /> {p.payer_name}
+                  </span>
+                  <span className={styles.requestTotal}>{Number(p.amount).toFixed(2)} €</span>
+                  <span className={styles.requestMessage}>Método: {p.payment_method}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {serviceRequests.length > 0 && (
         <div className={styles.requestsSection}>
           <h3 className={styles.requestsTitle}>

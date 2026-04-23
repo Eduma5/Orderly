@@ -421,3 +421,6 @@ insert into admin_settings (key, value) values
      f o r   e a c h   r o w   e x e c u t e   f u n c t i o n   u p d a t e _ u p d a t e d _ a t ( ) ; 
  
  
+-- Group member payment metadata
+alter table if exists group_members add column if not exists payment_method text;
+alter table if exists group_members add column if not exists paid_at timestamptz;

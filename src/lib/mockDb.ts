@@ -593,6 +593,15 @@ export async function getPartialPayments(tableNumber: number) {
   return payments.filter((p) => p.table_number === tableNumber && p.session_id === sessionId);
 }
 
+export async function getRecentPartialPayments(limit = 30) {
+  ensureSeeded();
+  const payments = load<any[]>('partial_payments') || [];
+  return payments
+    .slice()
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, limit);
+}
+
 export async function getOrders(status?: string): Promise<Order[]> {
   ensureSeeded();
   const orders = load<MockOrder[]>('orders') || [];
@@ -1031,7 +1040,7 @@ export async function unclaimGroupItem(sessionId: string, itemId: string): Promi
 }
 
 /** Cada comensal paga su parte al monedero del anfitrión */
-export async function payGroupShare(sessionId: string): Promise<GroupSession> {
+export async function payGroupShare(sessionId: string, method: 'wallet' | 'cash_admin' | 'cash_bar' = 'wallet'): Promise<GroupSession> {
   ensureSeeded();
   const userId = getCurrentUserId();
   if (!userId) throw new Error('Debes iniciar sesión');
@@ -1049,31 +1058,35 @@ export async function payGroupShare(sessionId: string): Promise<GroupSession> {
   // Es el anfitrión: no necesita pagar a sí mismo
   if (userId === session.host_user_id) {
     member.paid = true;
+    member.payment_method = 'host_confirm';
     member.paid_at = now();
     save('group_sessions', sessions);
     broadcast('group_session_update', { sessionId });
     return sessions[idx];
   }
 
-  // Descontar del monedero del comensal
-  await payWithWallet(member.amount, `Pago grupo — Mesa ${session.table_number}`);
+  if (method === 'wallet') {
+    // Descontar del monedero del comensal
+    await payWithWallet(member.amount, `Pago grupo — Mesa ${session.table_number}`);
 
-  // Acreditar en el monedero del anfitrión
-  const hostWalletKey = `wallet_user_${session.host_user_id}`;
-  const hostWallet = load<{ balance: number; transactions: WalletTransaction[] }>(hostWalletKey) ||
-    { balance: 0, transactions: [] };
-  hostWallet.balance = Math.round((hostWallet.balance + member.amount) * 100) / 100;
-  hostWallet.transactions.unshift({
-    id: uuid(),
-    type: 'recharge',
-    amount: member.amount,
-    description: `💸 Pago de ${member.name} — grupo Mesa ${session.table_number}`,
-    created_at: now(),
-  });
-  save(hostWalletKey, hostWallet);
+    // Acreditar en el monedero del anfitrión
+    const hostWalletKey = `wallet_user_${session.host_user_id}`;
+    const hostWallet = load<{ balance: number; transactions: WalletTransaction[] }>(hostWalletKey) ||
+      { balance: 0, transactions: [] };
+    hostWallet.balance = Math.round((hostWallet.balance + member.amount) * 100) / 100;
+    hostWallet.transactions.unshift({
+      id: uuid(),
+      type: 'recharge',
+      amount: member.amount,
+      description: `💸 Pago de ${member.name} — grupo Mesa ${session.table_number}`,
+      created_at: now(),
+    });
+    save(hostWalletKey, hostWallet);
+  }
 
   // Marcar como pagado
   member.paid = true;
+  member.payment_method = method;
   member.paid_at = now();
   save('group_sessions', sessions);
   broadcast('group_session_update', { sessionId });

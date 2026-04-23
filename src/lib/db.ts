@@ -444,6 +444,18 @@ export async function getPartialPayments(tableNumber: number) {
   return data || [];
 }
 
+export async function getRecentPartialPayments(limit = 30) {
+  if (IS_DEMO || !supabase) return mock.getRecentPartialPayments(limit);
+  const { data, error } = await supabase
+    .from('partial_payments')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data || [];
+}
+
 export async function getOrders(status?: string): Promise<Order[]> {
   if (IS_DEMO || !supabase) return mock.getOrders(status);
   let query = supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false });
@@ -1004,13 +1016,24 @@ export async function payGroupShare(sessionId: string, method: 'wallet' | 'cash_
     }
   }
 
-  const { error } = await supabase
+  const paymentMethod = user.id === session.host_user_id ? 'host_confirm' : method;
+  const paidAt = new Date().toISOString();
+
+  const primaryUpdate = await supabase
     .from('group_members')
-    .update({ paid: true })
+    .update({ paid: true, paid_at: paidAt, payment_method: paymentMethod } as any)
     .eq('session_id', sessionId)
     .eq('user_id', user.id);
-    
-  if (error) throw error;
+
+  if (primaryUpdate.error) {
+    const fallbackUpdate = await supabase
+      .from('group_members')
+      .update({ paid: true } as any)
+      .eq('session_id', sessionId)
+      .eq('user_id', user.id);
+    if (fallbackUpdate.error) throw fallbackUpdate.error;
+  }
+
   return getGroupSession(sessionId) as Promise<GroupSession>;
 }
 

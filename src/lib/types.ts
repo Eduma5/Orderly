@@ -101,7 +101,18 @@ export interface GroupMember {
   name: string;
   amount: number; // cantidad que debe pagar
   paid: boolean;
+  payment_method?: 'wallet' | 'cash_admin' | 'cash_bar' | 'host_confirm';
   paid_at?: string;
+}
+
+export interface PartialPayment {
+  id: string;
+  table_number: number;
+  session_id: string;
+  amount: number;
+  payment_method: string;
+  payer_name: string;
+  created_at: string;
 }
 
 export interface CartItem {
