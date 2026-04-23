@@ -5,6 +5,39 @@ import { IS_DEMO, supabase, getSessionId } from './supabase';
 import * as mock from './mockDb';
 import type { Category, Product, Order, UserPublic, ServiceRequest, GroupSession } from './types';
 
+type PartialPaymentRow = {
+  id: string;
+  table_number: number;
+  session_id: string;
+  amount: number;
+  payment_method: string;
+  payer_name: string;
+  created_at: string;
+};
+
+function getPartialStorageKey(tableNumber: number, sessionId: string): string {
+  return `partial_payments_${tableNumber}_${sessionId}`;
+}
+
+function loadLocalPartialPayments(tableNumber: number, sessionId: string): PartialPaymentRow[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(getPartialStorageKey(tableNumber, sessionId));
+    return raw ? (JSON.parse(raw) as PartialPaymentRow[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalPartialPayments(tableNumber: number, sessionId: string, rows: PartialPaymentRow[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(getPartialStorageKey(tableNumber, sessionId), JSON.stringify(rows));
+  } catch {
+    // ignore storage failures
+  }
+}
+
 function toUserPublic(user: { id: string; email?: string | null; user_metadata?: Record<string, any>; created_at?: string }): UserPublic {
   return {
     id: user.id,
@@ -244,28 +277,124 @@ export async function getUnpaidOrdersByTable(tableNumber: number) {
 
 export async function payOrders(orderIds: string[], paymentMethod: string, tableNumber: number): Promise<void> {
   if (IS_DEMO || !supabase) return mock.payOrders(orderIds, paymentMethod, tableNumber);
+
+  const orderPaymentMethod = ['card', 'cash', 'bizum', 'wallet'].includes(paymentMethod)
+    ? paymentMethod
+    : 'cash';
+
   const nowIso = new Date().toISOString();
   const { error } = await supabase
     .from('orders')
     .update({
       status: 'paid',
-      payment_method: paymentMethod,
+      payment_method: orderPaymentMethod,
       paid_at: nowIso,
       updated_at: nowIso,
     })
     .in('id', orderIds);
 
   if (error) throw error;
+
+  const { data: paidOrders } = await supabase
+    .from('orders')
+    .select('id, total')
+    .in('id', orderIds);
+
+  const { data: items } = await supabase
+    .from('order_items')
+    .select('product_name, quantity, unit_price')
+    .in('order_id', orderIds);
+
+  const ticketItems = (items || []).map((item: any) => ({
+    name: item.product_name,
+    qty: item.quantity,
+    price: Number(item.unit_price),
+  }));
+
+  const ticketTotal = (paidOrders || []).reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
+  if (ticketItems.length > 0 && ticketTotal > 0) {
+    await createTicket(orderIds[0], tableNumber, ticketItems, ticketTotal, paymentMethod);
+  }
 }
 
 export async function payPartial(tableNumber: number, amount: number, paymentMethod: string, payerName: string): Promise<void> {
   if (IS_DEMO || !supabase) return mock.payPartial(tableNumber, amount, paymentMethod, payerName);
-  throw new Error('Supabase not configured');
+  const sessionId = getSessionId();
+  let partialsFromDb = true;
+
+  const { error: partialErr } = await supabase
+    .from('partial_payments')
+    .insert({
+      table_number: tableNumber,
+      session_id: sessionId,
+      amount,
+      payment_method: paymentMethod,
+      payer_name: payerName,
+    });
+
+  if (partialErr) {
+    partialsFromDb = false;
+    const rows = loadLocalPartialPayments(tableNumber, sessionId);
+    rows.push({
+      id: crypto.randomUUID(),
+      table_number: tableNumber,
+      session_id: sessionId,
+      amount,
+      payment_method: paymentMethod,
+      payer_name: payerName,
+      created_at: new Date().toISOString(),
+    });
+    saveLocalPartialPayments(tableNumber, sessionId, rows);
+  }
+
+  const { data: unpaidOrders, error: unpaidErr } = await supabase
+    .from('orders')
+    .select('id, total')
+    .eq('table_number', tableNumber)
+    .eq('session_id', sessionId)
+    .neq('status', 'paid');
+
+  if (unpaidErr) throw unpaidErr;
+
+  let partials: Array<{ amount: number }> = [];
+  if (partialsFromDb) {
+    const { data: partialsData, error: partialsErr } = await supabase
+      .from('partial_payments')
+      .select('amount')
+      .eq('table_number', tableNumber)
+      .eq('session_id', sessionId);
+
+    if (partialsErr) throw partialsErr;
+    partials = (partialsData || []) as Array<{ amount: number }>;
+  } else {
+    partials = loadLocalPartialPayments(tableNumber, sessionId).map((p) => ({ amount: p.amount }));
+  }
+
+  const totalUnpaid = (unpaidOrders || []).reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
+  const totalPaid = (partials || []).reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+
+  if (totalUnpaid > 0 && totalPaid >= totalUnpaid - 0.01) {
+    const unpaidIds = (unpaidOrders || []).map((o: any) => o.id);
+    if (unpaidIds.length > 0) {
+      await payOrders(unpaidIds, 'split', tableNumber);
+    }
+  }
 }
 
 export async function getPartialPayments(tableNumber: number) {
   if (IS_DEMO || !supabase) return mock.getPartialPayments(tableNumber);
-  throw new Error('Supabase not configured');
+  const sessionId = getSessionId();
+  const { data, error } = await supabase
+    .from('partial_payments')
+    .select('*')
+    .eq('table_number', tableNumber)
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    return loadLocalPartialPayments(tableNumber, sessionId);
+  }
+  return data || [];
 }
 
 export async function getOrders(status?: string): Promise<Order[]> {
@@ -280,13 +409,29 @@ export async function getOrders(status?: string): Promise<Order[]> {
 
 export async function getPaidOrders(since?: string) {
   if (IS_DEMO || !supabase) return mock.getPaidOrders(since);
-  throw new Error('Supabase not configured');
+  let query = supabase
+    .from('orders')
+    .select('*, order_items(*)')
+    .eq('status', 'paid')
+    .order('paid_at', { ascending: false });
+
+  if (since) query = query.gte('paid_at', since);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return ((data || []) as any[]).map((order) => ({
+    ...order,
+    items: order.order_items || [],
+  }));
 }
 
 export async function updateOrderStatus(orderId: string, status: string, paymentMethod?: string): Promise<void> {
   if (IS_DEMO || !supabase) return mock.updateOrderStatus(orderId, status, paymentMethod);
   const updates: any = { status };
-  if (paymentMethod) updates.payment_method = paymentMethod;
+  if (paymentMethod) {
+    updates.payment_method = ['card', 'cash', 'bizum', 'wallet'].includes(paymentMethod) ? paymentMethod : 'cash';
+  }
   if (status === 'paid') updates.paid_at = new Date().toISOString();
   
   await supabase.from('orders').update(updates).eq('id', orderId);
@@ -308,12 +453,55 @@ export async function createTicket(
   paymentMethod: string
 ) {
   if (IS_DEMO || !supabase) return mock.createTicket(orderId, tableNumber, items, total, paymentMethod);
-  throw new Error('Supabase not configured');
+  const sessionId = getSessionId();
+  let { data, error } = await supabase
+    .from('tickets')
+    .insert({
+      order_id: orderId,
+      table_number: tableNumber,
+      session_id: sessionId,
+      total,
+      payment_method: paymentMethod,
+      items,
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    // If DB has a restrictive CHECK for payment_method, retry with a compatible value.
+    const fallbackMethod = ['card', 'cash', 'bizum', 'wallet'].includes(paymentMethod) ? paymentMethod : 'cash';
+    const retry = await supabase
+      .from('tickets')
+      .insert({
+        order_id: orderId,
+        table_number: tableNumber,
+        session_id: sessionId,
+        total,
+        payment_method: fallbackMethod,
+        items,
+      })
+      .select('*')
+      .single();
+
+    data = retry.data;
+    error = retry.error;
+  }
+
+  if (error) throw error;
+  return data;
 }
 
 export async function getMyTickets() {
   if (IS_DEMO || !supabase) return mock.getMyTickets();
-  throw new Error('Supabase not configured');
+  const sessionId = getSessionId();
+  const { data, error } = await supabase
+    .from('tickets')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
 }
 
 // =========================
@@ -688,10 +876,82 @@ async function updateMemberAmounts(sessionId: string): Promise<GroupSession> {
   return getGroupSession(sessionId) as Promise<GroupSession>;
 }
 
-export async function payGroupShare(sessionId: string): Promise<GroupSession> {
+export async function payGroupShare(sessionId: string, method: 'wallet' | 'cash_admin' | 'cash_bar' = 'wallet'): Promise<GroupSession> {
   if (IS_DEMO || !supabase) return mock.payGroupShare(sessionId);
   const user = await getCurrentUser();
   if (!user) throw new Error('No autorizado');
+
+  const session = await getGroupSession(sessionId);
+  if (!session) throw new Error('Sesión no encontrada');
+
+  const member = session.members.find((m) => m.user_id === user.id);
+  if (!member) throw new Error('No perteneces a este grupo');
+  if (member.paid) throw new Error('Tu parte ya está pagada');
+
+  if (method === 'wallet' && member.amount > 0 && user.id !== session.host_user_id) {
+    const payerSessionId = getSessionId();
+    const { data: payerWallet, error: payerWalletErr } = await supabase
+      .from('wallets')
+      .select('balance')
+      .eq('session_id', payerSessionId)
+      .single();
+
+    if (payerWalletErr || !payerWallet) throw new Error('No se encontró tu monedero');
+
+    const payerBalance = Number(payerWallet.balance || 0);
+    if (payerBalance < Number(member.amount)) throw new Error('Saldo insuficiente en tu monedero');
+
+    const newPayerBalance = Math.round((payerBalance - Number(member.amount)) * 100) / 100;
+    const { error: payerUpdateErr } = await supabase
+      .from('wallets')
+      .update({ balance: newPayerBalance })
+      .eq('session_id', payerSessionId);
+    if (payerUpdateErr) throw payerUpdateErr;
+
+    await supabase.from('wallet_transactions').insert({
+      session_id: payerSessionId,
+      type: 'payment',
+      amount: Number(member.amount),
+      description: `Pago grupo mesa ${session.table_number}`,
+    });
+
+    const { data: hostOrder } = await supabase
+      .from('orders')
+      .select('session_id')
+      .in('id', session.order_ids)
+      .limit(1)
+      .single();
+
+    const hostSessionId = hostOrder?.session_id as string | undefined;
+    if (hostSessionId) {
+      const { data: hostWallet } = await supabase
+        .from('wallets')
+        .select('balance')
+        .eq('session_id', hostSessionId)
+        .single();
+
+      if (hostWallet) {
+        const hostBalance = Number(hostWallet.balance || 0);
+        const newHostBalance = Math.round((hostBalance + Number(member.amount)) * 100) / 100;
+        await supabase
+          .from('wallets')
+          .update({ balance: newHostBalance })
+          .eq('session_id', hostSessionId);
+      } else {
+        await supabase.from('wallets').insert({
+          session_id: hostSessionId,
+          balance: Number(member.amount),
+        });
+      }
+
+      await supabase.from('wallet_transactions').insert({
+        session_id: hostSessionId,
+        type: 'recharge',
+        amount: Number(member.amount),
+        description: `Cobro grupo de ${user.name} mesa ${session.table_number}`,
+      });
+    }
+  }
 
   const { error } = await supabase
     .from('group_members')
@@ -707,6 +967,32 @@ export async function hostPayVenue(sessionId: string): Promise<void> {
   if (IS_DEMO || !supabase) return mock.hostPayVenue(sessionId);
   const session = await getGroupSession(sessionId);
   if (!session) throw new Error('Sesión no encontrada');
+  if (!session.members.every((m) => m.paid)) throw new Error('Aún hay miembros sin pagar');
+
+  const orderPaymentMethod = 'cash';
+  const nowIso = new Date().toISOString();
+  const { error: orderErr } = await supabase
+    .from('orders')
+    .update({
+      status: 'paid',
+      payment_method: orderPaymentMethod,
+      paid_at: nowIso,
+      updated_at: nowIso,
+    })
+    .in('id', session.order_ids);
+
+  if (orderErr) throw orderErr;
+
+  const total = session.items.reduce((sum, i) => sum + Number(i.unit_price) * Number(i.quantity), 0);
+  const ticketItems = session.items.map((i) => ({
+    name: i.product_name,
+    qty: i.quantity,
+    price: Number(i.unit_price),
+  }));
+
+  if (ticketItems.length > 0 && total > 0) {
+    await createTicket(session.order_ids[0], session.table_number, ticketItems, total, 'split');
+  }
   
   // Mark as completed
   await supabase.from('group_sessions').update({ status: 'completed' }).eq('id', sessionId);

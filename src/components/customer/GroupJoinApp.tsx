@@ -110,7 +110,7 @@ export default function GroupJoinApp({ sessionId }: Props) {
     if (!session) return;
     setPaying(true);
     try {
-      const updated = await payGroupShare(session.id);
+      const updated = await payGroupShare(session.id, method);
       setSession(updated);
       
       if (method === 'wallet') {

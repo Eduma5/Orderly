@@ -103,6 +103,19 @@ create table if not exists order_items (
 );
 
 -- ============================================
+-- PAGOS PARCIALES (DIVIDIR CUENTA)
+-- ============================================
+create table if not exists partial_payments (
+  id uuid primary key default uuid_generate_v4(),
+  table_number int not null,
+  session_id text not null,
+  amount numeric(10,2) not null,
+  payment_method text not null,
+  payer_name text not null,
+  created_at timestamptz not null default now()
+);
+
+-- ============================================
 -- TICKETS / RECIBOS
 -- ============================================
 create table if not exists tickets (
@@ -134,6 +147,7 @@ create index if not exists idx_orders_status on orders(status);
 create index if not exists idx_orders_table on orders(table_number);
 create index if not exists idx_orders_session on orders(session_id);
 create index if not exists idx_order_items_order on order_items(order_id);
+create index if not exists idx_partial_payments_table_session on partial_payments(table_number, session_id);
 create index if not exists idx_tickets_session on tickets(session_id);
 create index if not exists idx_tickets_order on tickets(order_id);
 create index if not exists idx_service_requests_status on service_requests(status);
@@ -196,6 +210,11 @@ create policy "orders_delete" on orders for delete using (
 alter table order_items enable row level security;
 create policy "order_items_insert" on order_items for insert with check (true);
 create policy "order_items_select" on order_items for select using (true);
+
+-- Pagos parciales: lectura/inserción pública para clientes de mesa
+alter table partial_payments enable row level security;
+create policy "partial_payments_insert" on partial_payments for insert with check (true);
+create policy "partial_payments_select" on partial_payments for select using (true);
 
 -- Tickets: el cliente lee los suyos por session_id
 alter table tickets enable row level security;
@@ -353,5 +372,52 @@ insert into admin_settings (key, value) values
  
  c r e a t e   t r i g g e r   w a l l e t s _ u p d a t e d _ a t 
      b e f o r e   u p d a t e   o n   w a l l e t s 
-     f o r   e a c h   r o w   e x e c u t e   f u n c t i o n   u p d a t e _ u p d a t e d _ a t ( ) ;  
+     f o r   e a c h   r o w   e x e c u t e   f u n c t i o n   u p d a t e _ u p d a t e d _ a t ( ) ; 
+ 
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+ - -   G R U P O S   /   P A G O   D I V I D I D O 
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+ c r e a t e   t a b l e   i f   n o t   e x i s t s   g r o u p _ s e s s i o n s   ( 
+     i d   u u i d   p r i m a r y   k e y   d e f a u l t   u u i d _ g e n e r a t e _ v 4 ( ) , 
+     h o s t _ u s e r _ i d   u u i d , 
+     h o s t _ n a m e   t e x t , 
+     t a b l e _ n u m b e r   i n t   n o t   n u l l , 
+     o r d e r _ i d s   t e x t [ ]   n o t   n u l l , 
+     s t a t u s   t e x t   n o t   n u l l   d e f a u l t   ' a c t i v e '   c h e c k   ( s t a t u s   i n   ( ' a c t i v e ' , ' c o m p l e t e d ' ) ) , 
+     c r e a t e d _ a t   t i m e s t a m p t z   n o t   n u l l   d e f a u l t   n o w ( ) , 
+     u p d a t e d _ a t   t i m e s t a m p t z   n o t   n u l l   d e f a u l t   n o w ( ) 
+ ) ; 
+ 
+ c r e a t e   t a b l e   i f   n o t   e x i s t s   g r o u p _ s e s s i o n _ i t e m s   ( 
+     i d   u u i d   p r i m a r y   k e y   d e f a u l t   u u i d _ g e n e r a t e _ v 4 ( ) , 
+     s e s s i o n _ i d   u u i d   n o t   n u l l   r e f e r e n c e s   g r o u p _ s e s s i o n s ( i d )   o n   d e l e t e   c a s c a d e , 
+     p r o d u c t _ n a m e   t e x t   n o t   n u l l , 
+     q u a n t i t y   i n t   n o t   n u l l   d e f a u l t   1 , 
+     u n i t _ p r i c e   n u m e r i c ( 1 0 , 2 )   n o t   n u l l , 
+     c l a i m e d _ b y   t e x t   - -   u s e r _ i d   o f   w h o   c l a i m e d   i t 
+ ) ; 
+ 
+ c r e a t e   t a b l e   i f   n o t   e x i s t s   g r o u p _ m e m b e r s   ( 
+     i d   u u i d   p r i m a r y   k e y   d e f a u l t   u u i d _ g e n e r a t e _ v 4 ( ) , 
+     s e s s i o n _ i d   u u i d   n o t   n u l l   r e f e r e n c e s   g r o u p _ s e s s i o n s ( i d )   o n   d e l e t e   c a s c a d e , 
+     u s e r _ i d   t e x t   n o t   n u l l , 
+     n a m e   t e x t   n o t   n u l l , 
+     a m o u n t   n u m e r i c ( 1 0 , 2 )   n o t   n u l l   d e f a u l t   0 , 
+     p a i d   b o o l e a n   n o t   n u l l   d e f a u l t   f a l s e , 
+     u n i q u e ( s e s s i o n _ i d ,   u s e r _ i d ) 
+ ) ; 
+ 
+ a l t e r   t a b l e   g r o u p _ s e s s i o n s   e n a b l e   r o w   l e v e l   s e c u r i t y ; 
+ c r e a t e   p o l i c y   " g r o u p _ s e s s i o n s _ a l l "   o n   g r o u p _ s e s s i o n s   f o r   a l l   u s i n g   ( t r u e ) ; 
+ 
+ a l t e r   t a b l e   g r o u p _ s e s s i o n _ i t e m s   e n a b l e   r o w   l e v e l   s e c u r i t y ; 
+ c r e a t e   p o l i c y   " g r o u p _ s e s s i o n _ i t e m s _ a l l "   o n   g r o u p _ s e s s i o n _ i t e m s   f o r   a l l   u s i n g   ( t r u e ) ; 
+ 
+ a l t e r   t a b l e   g r o u p _ m e m b e r s   e n a b l e   r o w   l e v e l   s e c u r i t y ; 
+ c r e a t e   p o l i c y   " g r o u p _ m e m b e r s _ a l l "   o n   g r o u p _ m e m b e r s   f o r   a l l   u s i n g   ( t r u e ) ; 
+ 
+ c r e a t e   t r i g g e r   g r o u p _ s e s s i o n s _ u p d a t e d _ a t 
+     b e f o r e   u p d a t e   o n   g r o u p _ s e s s i o n s 
+     f o r   e a c h   r o w   e x e c u t e   f u n c t i o n   u p d a t e _ u p d a t e d _ a t ( ) ; 
+ 
  

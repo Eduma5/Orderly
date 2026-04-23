@@ -97,7 +97,7 @@ export default function GroupPayment({ isOpen, onClose, onComplete, tableNumber,
     if (!session) return;
     setPaying(true);
     try {
-      const updated = await payGroupShare(session.id);
+      const updated = await payGroupShare(session.id, method);
       setSession(updated);
       
       if (isHost) {
