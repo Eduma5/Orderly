@@ -312,7 +312,9 @@ export default function GroupPayment({ isOpen, onClose, onComplete, tableNumber,
                   </span>
                   <span className={styles.memberAmount}>{m.amount.toFixed(2)} EUR</span>
                   {m.paid ? (
-                    <span className={styles.memberPaid}>Pagado</span>
+                    <span className={styles.memberPaid}>
+                      Pagado{m.payment_method ? ` · ${m.payment_method}` : ''}
+                    </span>
                   ) : (
                     <span className={styles.memberPending}>Pendiente</span>
                   )}

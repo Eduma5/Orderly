@@ -24,6 +24,7 @@ type Period = 'today' | 'week' | 'month' | 'all';
 
 export default function EarningsPanel() {
   const [period, setPeriod] = useState<Period>('today');
+  const [methodFilter, setMethodFilter] = useState<string>('all');
   const [orders, setOrders] = useState<PaidOrderData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +44,8 @@ export default function EarningsPanel() {
 
     return orders.filter((o) => {
       const d = new Date(o.paid_at);
+      const methodOk = methodFilter === 'all' || (o.payment_method || 'unknown') === methodFilter;
+      if (!methodOk) return false;
       switch (period) {
         case 'today': return d >= startOfDay;
         case 'week': return d >= startOfWeek;
@@ -50,7 +53,41 @@ export default function EarningsPanel() {
         default: return true;
       }
     });
-  }, [orders, period]);
+  }, [orders, period, methodFilter]);
+
+  const availableMethods = useMemo(() => {
+    const set = new Set<string>();
+    orders.forEach((o) => set.add(o.payment_method || 'unknown'));
+    return ['all', ...Array.from(set.values())];
+  }, [orders]);
+
+  const exportCsv = () => {
+    const rows = filtered.map((o) => ({
+      id: o.id,
+      mesa: o.table_number,
+      metodo: o.payment_method || 'unknown',
+      total: o.total.toFixed(2),
+      coste: (o.total_cost || 0).toFixed(2),
+      beneficio: (o.total - (o.total_cost || 0)).toFixed(2),
+      fecha: o.paid_at,
+    }));
+
+    const header = ['id', 'mesa', 'metodo', 'total', 'coste', 'beneficio', 'fecha'];
+    const csv = [
+      header.join(','),
+      ...rows.map((r) => [r.id, r.mesa, r.metodo, r.total, r.coste, r.beneficio, r.fecha].join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `earnings_${period}_${methodFilter}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const stats = useMemo(() => {
     const totalRevenue = filtered.reduce((s, o) => s + o.total, 0);
@@ -114,6 +151,21 @@ export default function EarningsPanel() {
             {periodLabels[p]}
           </button>
         ))}
+        <select
+          className={styles.periodBtn}
+          value={methodFilter}
+          onChange={(e) => setMethodFilter(e.target.value)}
+          aria-label="Filtrar por método de pago"
+        >
+          {availableMethods.map((method) => (
+            <option key={method} value={method}>
+              {method === 'all' ? 'Todos los métodos' : method}
+            </option>
+          ))}
+        </select>
+        <button className={styles.periodBtn} onClick={exportCsv} disabled={filtered.length === 0}>
+          Exportar CSV
+        </button>
       </div>
 
       <div className={styles.kpiGrid}>

@@ -50,11 +50,13 @@ export default function Wallet({ isOpen, onClose }: Props) {
       const params = new URLSearchParams(window.location.search);
       if (params.get('recharge') === 'success') {
         toast.success('¡Recarga completada con éxito!');
+        loadData();
         // remove query param
         const newUrl = window.location.pathname;
         window.history.replaceState({}, '', newUrl);
       } else if (params.get('recharge') === 'cancel') {
         toast.error('Recarga cancelada');
+        loadData();
         const newUrl = window.location.pathname;
         window.history.replaceState({}, '', newUrl);
       }
