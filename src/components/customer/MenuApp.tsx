@@ -50,7 +50,11 @@ export default function MenuApp({ tableNumber }: Props) {
   const [sending, setSending] = useState(false);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [unpaidOrders, setUnpaidOrders] = useState<Order[]>([]);
+  const [showFavorites, setShowFavorites] = useState(false);
   const items = useCartStore((s) => s.items);
+  const favoriteProductIds = useCartStore((s) => s.favoriteProductIds);
+  const lastOrder = useCartStore((s) => s.lastOrder);
+  const saveLastOrder = useCartStore((s) => s.saveLastOrder);
 
   // Comprobar sesión existente al cargar
   useEffect(() => {
@@ -110,9 +114,11 @@ export default function MenuApp({ tableNumber }: Props) {
     return () => channel.unsubscribe();
   }, [refreshUnpaid]);
 
-  const filteredProducts = products.filter(
-    (p) => p.category_id === activeCategory && p.available
-  );
+  const filteredProducts = products.filter((p) => {
+    if (!p.available) return false;
+    if (showFavorites) return favoriteProductIds.includes(p.id);
+    return p.category_id === activeCategory;
+  });
 
   // NUEVO: Enviar pedido directamente (sin pago)
   const handleSendOrder = async () => {
@@ -121,6 +127,7 @@ export default function MenuApp({ tableNumber }: Props) {
 
     setSending(true);
     try {
+      saveLastOrder(cartItems);
       await createOrder(tableNumber, cartItems);
       useCartStore.getState().clearCart();
       setCartOpen(false);
@@ -132,6 +139,33 @@ export default function MenuApp({ tableNumber }: Props) {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleRepeatLastOrder = () => {
+    if (!lastOrder.length) {
+      toast.error('No hay último pedido para repetir');
+      return;
+    }
+
+    const addItem = useCartStore.getState().addItem;
+    const updateNotes = useCartStore.getState().updateNotes;
+    const updateQuantity = useCartStore.getState().updateQuantity;
+
+    for (const line of lastOrder) {
+      const product = products.find((p) => p.id === line.productId && p.available);
+      if (!product) continue;
+
+      addItem(product);
+      if (line.quantity > 1) {
+        updateQuantity(product.id, line.quantity);
+      }
+      if (line.notes) {
+        updateNotes(product.id, line.notes);
+      }
+    }
+
+    setCartOpen(true);
+    toast.success('Último pedido cargado en tu carrito');
   };
 
   // Cálculo del total de pedidos sin pagar
@@ -221,9 +255,20 @@ export default function MenuApp({ tableNumber }: Props) {
       <main className={styles.main}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>
-            {categories.find((c) => c.id === activeCategory)?.name || 'Menú'}
+            {showFavorites ? 'Tus favoritos' : categories.find((c) => c.id === activeCategory)?.name || 'Menú'}
           </h2>
-          <span className={styles.sectionCount}>{filteredProducts.length} productos</span>
+          <div className={styles.headerActions}>
+            <button
+              className={`${styles.quickBtn} ${showFavorites ? styles.quickBtnActive : ''}`}
+              onClick={() => setShowFavorites((v) => !v)}
+            >
+              {showFavorites ? 'Ver categoría' : 'Favoritos'}
+            </button>
+            <button className={styles.quickBtn} onClick={handleRepeatLastOrder}>
+              Repetir pedido
+            </button>
+            <span className={styles.sectionCount}>{filteredProducts.length} productos</span>
+          </div>
         </div>
         <div className={styles.grid}>
           {filteredProducts.map((product) => (

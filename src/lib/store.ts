@@ -5,20 +5,37 @@ interface CartStore {
   items: CartItem[];
   tableNumber: number | null;
   sessionId: string | null;
+  favoriteProductIds: string[];
+  lastOrder: Array<{ productId: string; quantity: number; notes?: string }>;
   setTable: (tableNumber: number, sessionId: string) => void;
   addItem: (product: Product) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   updateNotes: (productId: string, notes: string) => void;
   clearCart: () => void;
+  toggleFavorite: (productId: string) => void;
+  isFavorite: (productId: string) => boolean;
+  saveLastOrder: (items: CartItem[]) => void;
   getTotal: () => number;
   getItemCount: () => number;
+}
+
+function loadJson<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
   tableNumber: null,
   sessionId: null,
+  favoriteProductIds: loadJson<string[]>('ema_favorite_product_ids', []),
+  lastOrder: loadJson<Array<{ productId: string; quantity: number; notes?: string }>>('ema_last_order', []),
 
   setTable: (tableNumber, sessionId) => set({ tableNumber, sessionId }),
 
@@ -60,6 +77,32 @@ export const useCartStore = create<CartStore>((set, get) => ({
     })),
 
   clearCart: () => set({ items: [] }),
+
+  toggleFavorite: (productId) =>
+    set((state) => {
+      const exists = state.favoriteProductIds.includes(productId);
+      const next = exists
+        ? state.favoriteProductIds.filter((id) => id !== productId)
+        : [...state.favoriteProductIds, productId];
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('ema_favorite_product_ids', JSON.stringify(next));
+      }
+      return { favoriteProductIds: next };
+    }),
+
+  isFavorite: (productId) => get().favoriteProductIds.includes(productId),
+
+  saveLastOrder: (items) => {
+    const snapshot = items.map((i) => ({
+      productId: i.product.id,
+      quantity: i.quantity,
+      notes: i.notes,
+    }));
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('ema_last_order', JSON.stringify(snapshot));
+    }
+    set({ lastOrder: snapshot });
+  },
 
   getTotal: () =>
     get().items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),

@@ -2,7 +2,8 @@ import type { Product } from '../../lib/types';
 import { ALLERGEN_INFO } from '../../lib/types';
 import type { AllergenId } from '../../lib/types';
 import { useCartStore } from '../../lib/store';
-import { IoAdd, IoRemove } from 'react-icons/io5';
+import { IoAdd, IoRemove, IoHeart, IoHeartOutline } from 'react-icons/io5';
+import { getBestProductImage } from '../../lib/productImages';
 import styles from './ProductCard.module.css';
 
 interface Props {
@@ -12,19 +13,30 @@ interface Props {
 export default function ProductCard({ product }: Props) {
   const addItem = useCartStore((s) => s.addItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const toggleFavorite = useCartStore((s) => s.toggleFavorite);
+  const isFavorite = useCartStore((s) => s.isFavorite);
   const items = useCartStore((s) => s.items);
   const quantity = items.find((i) => i.product.id === product.id)?.quantity || 0;
+  const favorite = isFavorite(product.id);
+  const imageUrl = getBestProductImage(product);
 
   return (
     <div className={`${styles.card} ${quantity > 0 ? styles.inCart : ''}`}>
-      {product.image_url && (
+      {imageUrl && (
         <div className={styles.imageWrap}>
           <img
-            src={product.image_url}
+            src={imageUrl}
             alt={product.name}
             className={styles.image}
             loading="lazy"
           />
+          <button
+            className={styles.favoriteBtn}
+            onClick={() => toggleFavorite(product.id)}
+            aria-label={favorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+          >
+            {favorite ? <IoHeart size={16} /> : <IoHeartOutline size={16} />}
+          </button>
           {!product.available && <div className={styles.unavailable}>Agotado</div>}
         </div>
       )}

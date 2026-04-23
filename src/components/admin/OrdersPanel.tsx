@@ -111,6 +111,7 @@ export default function OrdersPanel() {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [partialPayments, setPartialPayments] = useState<PartialPaymentData[]>([]);
   const lastRequestCountRef = useRef<number>(0);
+  const lastUrgentCountRef = useRef<number>(0);
 
   const loadOrders = useCallback(async () => {
     try {
@@ -157,6 +158,12 @@ export default function OrdersPanel() {
       const newReqCount = await loadRequests();
       await loadPartials();
 
+      const urgentCount = (orders || []).filter((o) => {
+        if (!(o.status === 'pending' || o.status === 'preparing')) return false;
+        const ageMin = Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60000);
+        return ageMin >= 12;
+      }).length;
+
       if (payload.eventType === 'BROADCAST' || payload.eventType === 'STORAGE') {
         // Notificar nuevos pedidos
         if (payload.event === 'order_new' || (lastOrderCount !== null && newOrderCount > lastOrderCount)) {
@@ -181,8 +188,18 @@ export default function OrdersPanel() {
           playUrgentSound();
         }
 
+        if (urgentCount > lastUrgentCountRef.current) {
+          toast('⏱️ Hay pedidos con retraso de cocina', {
+            duration: 5000,
+            icon: '⚠️',
+            style: { background: '#fff7ed', border: '1px solid #f59e0b', color: '#9a3412' },
+          });
+          playUrgentSound();
+        }
+
         setLastOrderCount(newOrderCount);
         lastRequestCountRef.current = newReqCount;
+        lastUrgentCountRef.current = urgentCount;
       }
     });
 
@@ -192,9 +209,33 @@ export default function OrdersPanel() {
   }, [loadOrders, loadRequests, loadPartials]);
 
   const filteredOrders =
-    filter === 'all'
+    (filter === 'all'
       ? orders.filter((o) => o.status !== 'paid')
-      : orders.filter((o) => o.status === filter);
+      : orders.filter((o) => o.status === filter))
+      .slice()
+      .sort((a, b) => {
+        const aAge = Math.floor((Date.now() - new Date(a.created_at).getTime()) / 60000);
+        const bAge = Math.floor((Date.now() - new Date(b.created_at).getTime()) / 60000);
+        const aUrgent = (a.status === 'pending' || a.status === 'preparing') && aAge >= 12;
+        const bUrgent = (b.status === 'pending' || b.status === 'preparing') && bAge >= 12;
+        if (aUrgent !== bUrgent) return aUrgent ? -1 : 1;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
+
+  const metrics = {
+    activeOrders: orders.filter((o) => o.status !== 'paid').length,
+    urgentOrders: orders.filter((o) => {
+      if (!(o.status === 'pending' || o.status === 'preparing')) return false;
+      const ageMin = Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60000);
+      return ageMin >= 12;
+    }).length,
+    avgWaitMin: Math.round(
+      orders.length
+        ? orders.reduce((s, o) => s + Math.max(0, Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60000)), 0) / orders.length
+        : 0
+    ),
+    activeRequests: serviceRequests.length,
+  };
 
   const advanceStatus = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
@@ -267,6 +308,25 @@ export default function OrdersPanel() {
 
   return (
     <div className={styles.panel}>
+      <div className={styles.metricsRow}>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Pedidos activos</span>
+          <strong className={styles.metricValue}>{metrics.activeOrders}</strong>
+        </div>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Pedidos urgentes</span>
+          <strong className={`${styles.metricValue} ${metrics.urgentOrders > 0 ? styles.metricUrgent : ''}`}>{metrics.urgentOrders}</strong>
+        </div>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Espera media</span>
+          <strong className={styles.metricValue}>{metrics.avgWaitMin} min</strong>
+        </div>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Solicitudes activas</span>
+          <strong className={styles.metricValue}>{metrics.activeRequests}</strong>
+        </div>
+      </div>
+
       {/* === SOLICITUDES DE SERVICIO === */}
       {partialPayments.length > 0 && (
         <div className={styles.requestsSection}>
@@ -407,6 +467,8 @@ export default function OrdersPanel() {
         ) : (
           filteredOrders.map((order) => {
             const config = STATUS_CONFIG[order.status];
+            const ageMin = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000);
+            const urgent = (order.status === 'pending' || order.status === 'preparing') && ageMin >= 12;
             return (
               <div key={order.id} className={`${styles.order} ${order.status === 'ready_for_payment' ? styles.orderServed : ''}`}>
                 <div className={styles.orderHeader}>
@@ -418,6 +480,7 @@ export default function OrdersPanel() {
                     )}
                   </div>
                   <div className={styles.orderMeta}>
+                    {urgent && <span className={styles.urgentBadge}>URGENTE · {ageMin} min</span>}
                     <span
                       className={styles.status}
                       style={{ background: `${config.color}15`, color: config.color }}

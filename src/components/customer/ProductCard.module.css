@@ -51,6 +51,27 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+.favoriteBtn {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 10, 0.55);
+  color: #fff;
+  backdrop-filter: blur(4px);
+  transition: transform 0.15s, background 0.2s;
+}
+
+.favoriteBtn:hover {
+  transform: scale(1.08);
+  background: rgba(199, 91, 57, 0.9);
+}
+
 @media (min-width: 480px) {
   .imageWrap {
     width: 100px;
