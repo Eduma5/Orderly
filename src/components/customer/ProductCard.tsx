@@ -19,6 +19,18 @@ export default function ProductCard({ product }: Props) {
   const quantity = items.find((i) => i.product.id === product.id)?.quantity || 0;
   const favorite = isFavorite(product.id);
   const imageUrl = getBestProductImage(product);
+  const allergenText = (product.allergens || [])
+    .map((a) => ALLERGEN_INFO[a]?.label || a)
+    .join(', ');
+  const descriptionWithAllergens = (() => {
+    if (!allergenText) return product.description;
+    const allergenSuffix = `Alérgenos: ${allergenText}`;
+    const lowerDesc = (product.description || '').toLowerCase();
+    if (lowerDesc.includes('alérgenos:') || lowerDesc.includes('alergenos:')) {
+      return product.description;
+    }
+    return product.description ? `${product.description} · ${allergenSuffix}` : allergenSuffix;
+  })();
 
   return (
     <div className={`${styles.card} ${quantity > 0 ? styles.inCart : ''}`}>
@@ -43,8 +55,8 @@ export default function ProductCard({ product }: Props) {
       <div className={styles.info}>
         <div className={styles.top}>
           <h3 className={styles.name}>{product.name}</h3>
-          {product.description && (
-            <p className={styles.desc}>{product.description}</p>
+          {descriptionWithAllergens && (
+            <p className={styles.desc}>{descriptionWithAllergens}</p>
           )}
           {product.allergens && product.allergens.length > 0 && (
             <div className={styles.allergens}>

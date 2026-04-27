@@ -4,6 +4,7 @@
 // BroadcastChannel para comunicación entre pestañas
 // ============================================
 import type { Category, Product, Order, OrderItem, User, UserPublic, WalletTransaction, ServiceRequest, AllergenId, GroupSession, GroupItem, GroupMember } from './types';
+import { ALLERGEN_INFO } from './types';
 import { getSessionId } from './supabase';
 import { sendWelcomeEmail, sendPasswordResetEmail } from './email';
 
@@ -57,6 +58,37 @@ const SEED_CATEGORIES: Category[] = [
 
 let _pid = 0;
 const pid = () => { _pid++; return `p1000000-0000-0000-0000-${String(_pid).padStart(12, '0')}`; };
+
+const LOW_VARIETY_IMAGE_URLS = new Set<string>([
+  'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1560024802-a7e987926891?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=400&h=400&fit=crop',
+  'https://source.unsplash.com/400x400/?hookah,double-apple',
+  'https://source.unsplash.com/400x400/?hookah,watermelon,mint',
+  'https://source.unsplash.com/400x400/?hookah,grape',
+  'https://source.unsplash.com/400x400/?hookah,peach',
+  'https://source.unsplash.com/400x400/?hookah,mango,tropical',
+  'https://source.unsplash.com/400x400/?hookah,strawberry,ice',
+  'https://source.unsplash.com/400x400/?hookah,blueberry,mint',
+  'https://source.unsplash.com/400x400/?hookah,berries',
+  'https://source.unsplash.com/400x400/?hookah,luxury,bar',
+  'https://source.unsplash.com/400x400/?hookah,cocktail',
+  'https://source.unsplash.com/400x400/?hookah,drinks,table',
+  'https://source.unsplash.com/400x400/?friends,cafe,drinks',
+]);
+
+function buildDescriptionWithAllergens(description?: string, allergens: AllergenId[] = []): string | undefined {
+  const allergenLabels = allergens
+    .map((a) => ALLERGEN_INFO[a]?.label || a)
+    .join(', ');
+  if (!allergenLabels) return description;
+
+  const allergenSuffix = `Alérgenos: ${allergenLabels}`;
+  const lower = (description || '').toLowerCase();
+  if (lower.includes('alérgenos:') || lower.includes('alergenos:')) return description;
+
+  return description ? `${description} · ${allergenSuffix}` : allergenSuffix;
+}
 
 const SEED_PRODUCTS: Product[] = [
   // ── Cafés ──
@@ -113,22 +145,22 @@ const SEED_PRODUCTS: Product[] = [
   { id: pid(), category_id: c(6), name: 'Mojito sin alcohol', description: 'Lima, hierbabuena, azúcar moreno y soda', price: 3.50, cost: 0.80, image_url: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=400&h=400&fit=crop', tags: ['cold','fresh','sweet','fruity'], allergens: ['sulfitos'], available: true, order: 7 },
   { id: pid(), category_id: c(6), name: 'Granizado de limón', description: 'Hielo picado con zumo de limón natural', price: 2.50, cost: 0.50, image_url: 'https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?w=400&h=400&fit=crop', tags: ['cold','fresh','sweet','fruity'], allergens: ['sulfitos'], available: true, order: 8 },
   // ── Cachimbas ──
-  { id: pid(), category_id: c(7), name: 'Cachimba Doble Manzana', description: 'El clásico sabor de doble manzana con menta fresca', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=400&h=400&fit=crop', tags: ['hookah','fresh','fruity','popular'], allergens: [], available: true, order: 1 },
-  { id: pid(), category_id: c(7), name: 'Cachimba Sandía Ice', description: 'Sandía refrescante con toque mentolado', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1560024802-a7e987926891?w=400&h=400&fit=crop', tags: ['hookah','fresh','fruity','cold'], allergens: [], available: true, order: 2 },
-  { id: pid(), category_id: c(7), name: 'Cachimba Uva Menta', description: 'Uva dulce combinada con menta refrescante', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=400&h=400&fit=crop', tags: ['hookah','fresh','sweet','fruity'], allergens: [], available: true, order: 3 },
-  { id: pid(), category_id: c(7), name: 'Cachimba Melocotón', description: 'Sabor suave y dulce de melocotón maduro', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=400&h=400&fit=crop', tags: ['hookah','sweet','fruity'], allergens: [], available: true, order: 4 },
-  { id: pid(), category_id: c(7), name: 'Cachimba Mango Tango', description: 'Mango tropical con un toque exótico', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1560024802-a7e987926891?w=400&h=400&fit=crop', tags: ['hookah','sweet','tropical','fruity'], allergens: [], available: true, order: 5 },
-  { id: pid(), category_id: c(7), name: 'Cachimba Fresa Helada', description: 'Fresa dulce con efecto ice intenso', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=400&h=400&fit=crop', tags: ['hookah','cold','sweet','fruity'], allergens: [], available: true, order: 6 },
-  { id: pid(), category_id: c(7), name: 'Cachimba Blueberry Mint', description: 'Arándanos azules con menta suave', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=400&h=400&fit=crop', tags: ['hookah','fresh','fruity'], allergens: [], available: true, order: 7 },
-  { id: pid(), category_id: c(7), name: 'Cachimba Love 66', description: 'Mezcla de frutas del bosque con toque mentolado', price: 9.00, cost: 3.00, image_url: 'https://images.unsplash.com/photo-1560024802-a7e987926891?w=400&h=400&fit=crop', tags: ['hookah','fresh','fruity','popular','special'], allergens: [], available: true, order: 8 },
-  { id: pid(), category_id: c(7), name: 'Cachimba Premium Mix', description: 'Combinación exclusiva de la casa — sabor sorpresa', price: 10.00, cost: 3.50, image_url: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=400&h=400&fit=crop', tags: ['hookah','special','popular'], allergens: [], available: true, order: 9 },
+  { id: pid(), category_id: c(7), name: 'Cachimba Doble Manzana', description: 'El clásico sabor de doble manzana con menta fresca', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','fresh','fruity','popular'], allergens: [], available: true, order: 1 },
+  { id: pid(), category_id: c(7), name: 'Cachimba Sandía Ice', description: 'Sandía refrescante con toque mentolado', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1560024802-a7e987926891?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','fresh','fruity','cold'], allergens: [], available: true, order: 2 },
+  { id: pid(), category_id: c(7), name: 'Cachimba Uva Menta', description: 'Uva dulce combinada con menta refrescante', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','fresh','sweet','fruity'], allergens: [], available: true, order: 3 },
+  { id: pid(), category_id: c(7), name: 'Cachimba Melocotón', description: 'Sabor suave y dulce de melocotón maduro', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','sweet','fruity'], allergens: [], available: true, order: 4 },
+  { id: pid(), category_id: c(7), name: 'Cachimba Mango Tango', description: 'Mango tropical con un toque exótico', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1546173159-315724a31696?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','sweet','tropical','fruity'], allergens: [], available: true, order: 5 },
+  { id: pid(), category_id: c(7), name: 'Cachimba Fresa Helada', description: 'Fresa dulce con efecto ice intenso', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','cold','sweet','fruity'], allergens: [], available: true, order: 6 },
+  { id: pid(), category_id: c(7), name: 'Cachimba Blueberry Mint', description: 'Arándanos azules con menta suave', price: 8.00, cost: 2.50, image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','fresh','fruity'], allergens: [], available: true, order: 7 },
+  { id: pid(), category_id: c(7), name: 'Cachimba Love 66', description: 'Mezcla de frutas del bosque con toque mentolado', price: 9.00, cost: 3.00, image_url: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','fresh','fruity','popular','special'], allergens: [], available: true, order: 8 },
+  { id: pid(), category_id: c(7), name: 'Cachimba Premium Mix', description: 'Combinación exclusiva de la casa — sabor sorpresa', price: 10.00, cost: 3.50, image_url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','special','popular'], allergens: [], available: true, order: 9 },
   // ── Especiales ──
   { id: pid(), category_id: c(8), name: 'Brunch ORDERLY', description: 'Café/té + zumo + tosta + fruta + bollería', price: 9.90, cost: 3.50, image_url: 'https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=400&h=400&fit=crop', tags: ['special','sweet','salty','sharing'], allergens: ['gluten','lacteos','huevos','sesamo','frutos_cascara','soja'], available: true, order: 1 },
   { id: pid(), category_id: c(8), name: 'Merienda especial', description: 'Chai latte o chocolate + croissant + tarta', price: 6.90, cost: 2.20, image_url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop', tags: ['special','sweet','hot'], allergens: ['gluten','lacteos','huevos','soja','frutos_cascara'], available: true, order: 2 },
   { id: pid(), category_id: c(8), name: 'Chocolate a la taza', description: 'Chocolate negro 70% fundido con churros (6 uds)', price: 4.50, cost: 1.30, image_url: 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=400&h=400&fit=crop', tags: ['hot','sweet','chocolate','special'], allergens: ['gluten','lacteos','soja','huevos'], available: true, order: 3 },
-  { id: pid(), category_id: c(8), name: 'Combo Cachimba + Bebida', description: 'Cualquier cachimba + bebida a elegir', price: 10.50, cost: 3.50, image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=400&h=400&fit=crop', tags: ['hookah','special','popular'], allergens: ['sulfitos'], available: true, order: 4 },
-  { id: pid(), category_id: c(8), name: 'Combo Cachimba + 2 Bebidas', description: 'Cualquier cachimba + 2 bebidas a elegir', price: 13.00, cost: 4.20, image_url: 'https://images.unsplash.com/photo-1560024802-a7e987926891?w=400&h=400&fit=crop', tags: ['hookah','special','sharing','popular'], allergens: ['sulfitos'], available: true, order: 5 },
-  { id: pid(), category_id: c(8), name: 'Tarde de chicas', description: 'Cachimba + 2 batidos + tarta para compartir', price: 18.00, cost: 6.00, image_url: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=400&h=400&fit=crop', tags: ['hookah','sweet','sharing','special','popular'], allergens: ['lacteos','gluten','huevos','soja','frutos_cascara'], available: true, order: 6 },
+  { id: pid(), category_id: c(8), name: 'Combo Cachimba + Bebida', description: 'Cualquier cachimba + bebida a elegir', price: 10.50, cost: 3.50, image_url: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','special','popular'], allergens: ['sulfitos'], available: true, order: 4 },
+  { id: pid(), category_id: c(8), name: 'Combo Cachimba + 2 Bebidas', description: 'Cualquier cachimba + 2 bebidas a elegir', price: 13.00, cost: 4.20, image_url: 'https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','special','sharing','popular'], allergens: ['sulfitos'], available: true, order: 5 },
+  { id: pid(), category_id: c(8), name: 'Tarde de chicas', description: 'Cachimba + 2 batidos + tarta para compartir', price: 18.00, cost: 6.00, image_url: 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?auto=format&fit=crop&w=400&h=400&q=80', tags: ['hookah','sweet','sharing','special','popular'], allergens: ['lacteos','gluten','huevos','soja','frutos_cascara'], available: true, order: 6 },
 ];
 
 interface MockTable {
@@ -190,6 +222,55 @@ function ensureSeeded(): void {
     }
     if (changed) save('products', prods);
     save('_migrated_allergens_v2', true);
+  }
+
+  // v3: recuperar descripciones con alérgenos y mejorar imágenes repetidas
+  if (!load('_migrated_product_content_v3')) {
+    const prods = load<Product[]>('products') || [];
+    const seedMap = new Map(SEED_PRODUCTS.map((p) => [p.name, p]));
+    let changed = false;
+
+    for (const p of prods) {
+      const seed = seedMap.get(p.name);
+      const nextDescription = buildDescriptionWithAllergens(
+        p.description || seed?.description,
+        p.allergens || seed?.allergens || []
+      );
+
+      if (p.description !== nextDescription) {
+        p.description = nextDescription;
+        changed = true;
+      }
+
+      const lowVarietyImage = !!p.image_url && LOW_VARIETY_IMAGE_URLS.has(p.image_url);
+      if (seed?.image_url && (!p.image_url || lowVarietyImage) && p.image_url !== seed.image_url) {
+        p.image_url = seed.image_url;
+        changed = true;
+      }
+    }
+
+    if (changed) save('products', prods);
+    save('_migrated_product_content_v3', true);
+  }
+
+  // v4: asegurar URLs de imagen estables (compatibles con despliegues en Render)
+  if (!load('_migrated_product_images_render_v4')) {
+    const prods = load<Product[]>('products') || [];
+    const seedMap = new Map(SEED_PRODUCTS.map((p) => [p.name, p]));
+    let changed = false;
+
+    for (const p of prods) {
+      const seed = seedMap.get(p.name);
+      const isDynamicUnsplash = !!p.image_url && p.image_url.includes('source.unsplash.com');
+      const isLowVariety = !!p.image_url && LOW_VARIETY_IMAGE_URLS.has(p.image_url);
+      if (seed?.image_url && (isDynamicUnsplash || isLowVariety || !p.image_url) && p.image_url !== seed.image_url) {
+        p.image_url = seed.image_url;
+        changed = true;
+      }
+    }
+
+    if (changed) save('products', prods);
+    save('_migrated_product_images_render_v4', true);
   }
 }
 
