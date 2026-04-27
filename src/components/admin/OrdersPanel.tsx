@@ -36,6 +36,8 @@ interface OrderData {
   total_cost: number;
   payment_method: string | null;
   created_at: string;
+  updated_at?: string;
+  paid_at?: string | null;
   items: { product_name: string; quantity: number; unit_price: number; unit_cost: number; notes?: string }[];
 }
 
@@ -103,24 +105,37 @@ function playUrgentSound() {
   } catch { /* audio not available */ }
 }
 
+function getOrderWaitMinutes(order: OrderData): number {
+  const createdMs = new Date(order.created_at).getTime();
+  if (Number.isNaN(createdMs)) return 0;
+
+  const isClosedState = order.status === 'served' || order.status === 'ready_for_payment' || order.status === 'paid';
+  const endIso = order.paid_at || order.updated_at;
+  const endMs = (isClosedState && endIso) ? new Date(endIso).getTime() : Date.now();
+  if (Number.isNaN(endMs)) return 0;
+
+  return Math.max(0, Math.round((endMs - createdMs) / 60000));
+}
+
 export default function OrdersPanel() {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [filter, setFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
-  const [lastOrderCount, setLastOrderCount] = useState<number | null>(null);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [partialPayments, setPartialPayments] = useState<PartialPaymentData[]>([]);
+  const lastOrderCountRef = useRef<number>(0);
   const lastRequestCountRef = useRef<number>(0);
   const lastUrgentCountRef = useRef<number>(0);
 
   const loadOrders = useCallback(async () => {
     try {
       const data = await getOrders();
-      setOrders(data as OrderData[]);
-      return data.length;
+      const typedData = data as OrderData[];
+      setOrders(typedData);
+      return typedData;
     } catch (err) {
       console.error('Error loading orders:', err);
-      return 0;
+      return [] as OrderData[];
     } finally {
       setLoading(false);
     }
@@ -149,16 +164,17 @@ export default function OrdersPanel() {
   }, []);
 
   useEffect(() => {
-    loadOrders().then((count) => setLastOrderCount(count));
+    loadOrders().then((list) => { lastOrderCountRef.current = list.length; });
     loadRequests().then((count) => { lastRequestCountRef.current = count; });
     loadPartials();
 
     const channel = subscribeToOrders(async (payload) => {
-      const newOrderCount = await loadOrders();
+      const latestOrders = await loadOrders();
+      const newOrderCount = latestOrders.length;
       const newReqCount = await loadRequests();
       await loadPartials();
 
-      const urgentCount = (orders || []).filter((o) => {
+      const urgentCount = latestOrders.filter((o) => {
         if (!(o.status === 'pending' || o.status === 'preparing')) return false;
         const ageMin = Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60000);
         return ageMin >= 12;
@@ -166,7 +182,7 @@ export default function OrdersPanel() {
 
       if (payload.eventType === 'BROADCAST' || payload.eventType === 'STORAGE') {
         // Notificar nuevos pedidos
-        if (payload.event === 'order_new' || (lastOrderCount !== null && newOrderCount > lastOrderCount)) {
+        if (payload.event === 'order_new' || newOrderCount > lastOrderCountRef.current) {
           const tableNum = payload.data?.tableNumber;
           toast.success(
             `🔔 Nuevo pedido${tableNum ? ` — Mesa ${tableNum}` : ''}`,
@@ -197,7 +213,7 @@ export default function OrdersPanel() {
           playUrgentSound();
         }
 
-        setLastOrderCount(newOrderCount);
+        lastOrderCountRef.current = newOrderCount;
         lastRequestCountRef.current = newReqCount;
         lastUrgentCountRef.current = urgentCount;
       }
@@ -231,7 +247,7 @@ export default function OrdersPanel() {
     }).length,
     avgWaitMin: Math.round(
       orders.length
-        ? orders.reduce((s, o) => s + Math.max(0, Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60000)), 0) / orders.length
+        ? orders.reduce((sum, order) => sum + getOrderWaitMinutes(order), 0) / orders.length
         : 0
     ),
     activeRequests: serviceRequests.length,
