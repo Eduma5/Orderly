@@ -12,9 +12,9 @@ const IMAGE_BY_KEYWORD: Array<{ keywords: string[]; image: string }> = [
 ];
 
 export function getBestProductImage(product: Product): string {
+  if (product.image_url) return product.image_url;
   const name = `${product.name} ${product.description || ''}`.toLowerCase();
   const match = IMAGE_BY_KEYWORD.find((entry) => entry.keywords.some((k) => name.includes(k)));
   if (match) return match.image;
-  if (product.image_url) return product.image_url;
   return 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?w=600&h=600&fit=crop';
 }
